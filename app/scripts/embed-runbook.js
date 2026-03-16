@@ -1,13 +1,24 @@
 #!/usr/bin/env node
 /**
- * Embeds ../RUNBOOK.md into a TypeScript module so it's available at runtime
- * on Vercel (where fs access to parent directories isn't possible).
+ * Embeds ../RUNBOOK.md into a TypeScript module so it's available at runtime.
+ * Skips gracefully if RUNBOOK.md isn't found (e.g., on Vercel where the
+ * generated file is already committed).
  */
 const fs = require("fs");
 const path = require("path");
 
 const runbookPath = path.join(__dirname, "..", "..", "RUNBOOK.md");
 const outPath = path.join(__dirname, "..", "src", "lib", "runbook-content.generated.ts");
+
+if (!fs.existsSync(runbookPath)) {
+  // Check if the generated file already exists
+  if (fs.existsSync(outPath)) {
+    console.log("RUNBOOK.md not found but generated file exists — skipping.");
+    process.exit(0);
+  }
+  console.error("ERROR: RUNBOOK.md not found and no generated file exists.");
+  process.exit(1);
+}
 
 const content = fs.readFileSync(runbookPath, "utf-8");
 const escaped = JSON.stringify(content);
