@@ -17,16 +17,22 @@ export async function POST(req: NextRequest) {
     const huggingfaceUrl =
       (formData.get("huggingface_url") as string) || undefined;
 
-    // Step 1: Upload the PDF to Jetty
-    const buffer = await file.arrayBuffer();
-    const fileId = await uploadFile(buffer, file.name);
+    // Step 1: Upload the PDF
+    const pdf = await file.arrayBuffer();
+    const fileId = await uploadFile(pdf, file.name);
 
-    // Step 2: Launch the run via chat completions
-    const run = await launchRun({ fileId, datasetName, huggingfaceUrl });
+    // Step 2: Launch the run (JSON endpoint, reference file by ID)
+    const run = await launchRun({
+      fileId,
+      pdfFilename: file.name,
+      datasetName,
+      huggingfaceUrl,
+    });
 
     return NextResponse.json(run);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("POST /api/run error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

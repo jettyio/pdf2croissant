@@ -2,7 +2,7 @@ import type { Trajectory, TrajectoryListResponse, RunResponse } from "./types";
 import { RUNBOOK_CONTENT } from "./runbook-content.generated";
 
 const FLOWS_API = "https://flows-api.jetty.io/api/v1";
-const COLLECTION = "jettyio";
+const COLLECTION = "pdf2croissant";
 const TASK = "pdf2mlcroissant";
 
 function getToken(): string {
@@ -20,10 +20,13 @@ export function loadRunbook(): string {
   return RUNBOOK_CONTENT;
 }
 
-/** Upload a PDF to Jetty via the /v1/files API. Returns the file ID. */
-export async function uploadFile(pdf: ArrayBuffer, filename: string): Promise<string> {
+/** Upload a PDF via the /v1/files API. Returns the file ID. */
+export async function uploadFile(
+  pdf: ArrayBuffer,
+  filename: string
+): Promise<string> {
   const form = new FormData();
-  form.append("file", new Blob([pdf]), filename);
+  form.append("file", new Blob([pdf], { type: "application/pdf" }), filename);
   form.append("purpose", "sandbox");
 
   const res = await fetch(`${FLOWS_API}/files`, {
@@ -41,46 +44,41 @@ export async function uploadFile(pdf: ArrayBuffer, filename: string): Promise<st
   return data.id;
 }
 
-/** Launch a run via the OpenAI-compatible chat completions endpoint. */
+/**
+ * Launch a run via the /run/ JSON endpoint.
+ * The PDF is uploaded separately via /files and referenced by ID.
+ */
 export async function launchRun(params: {
   fileId: string;
+  pdfFilename: string;
   datasetName?: string;
   huggingfaceUrl?: string;
 }): Promise<RunResponse> {
   const runbook = loadRunbook();
 
-  const userParts = [
-    "Generate a Croissant JSON-LD file for the dataset described in the uploaded PDF.",
-    params.datasetName && `Dataset name: ${params.datasetName}`,
-    params.huggingfaceUrl && `HuggingFace URL: ${params.huggingfaceUrl}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const vars: Record<string, string> = {
+    pdf_filename: params.pdfFilename,
+  };
+  if (params.datasetName) vars.dataset_name = params.datasetName;
+  if (params.huggingfaceUrl) vars.huggingface_url = params.huggingfaceUrl;
 
-  const res = await fetch(`${FLOWS_API}/chat/completions`, {
+  const res = await fetch(`${FLOWS_API}/run/${COLLECTION}/${TASK}`, {
     method: "POST",
     headers: {
       ...headers(),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      messages: [
-        { role: "system", content: runbook },
-        { role: "user", content: userParts },
-      ],
-      stream: false,
-      jetty: {
-        runbook: true,
-        collection: COLLECTION,
-        task: TASK,
+      bakery_host: "https://dock.jetty.io",
+      init_params: {
+        instruction: runbook,
+        vars,
         agent: "claude-code",
+        model: "claude-sonnet-4-6",
         snapshot: "python312-uv",
         timeout_sec: 1200,
-        cpus: 4,
-        memory: "8G",
         network_enabled: true,
-        files: [params.fileId],
+        file_paths: [params.fileId],
       },
     }),
   });
@@ -90,9 +88,8 @@ export async function launchRun(params: {
     throw new Error(`Failed to launch run: ${res.status} ${text}`);
   }
 
-  const data = await res.json();
-  const workflowId: string =
-    data.jetty_metadata?.workflow_id ?? data.id ?? "";
+  const raw = await res.json();
+  const workflowId: string = raw.workflow_id ?? "";
   const parts = workflowId.split("--");
   const trajectoryId = parts[parts.length - 1] || workflowId;
 
