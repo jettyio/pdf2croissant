@@ -1,7 +1,7 @@
 import type { Trajectory, TrajectoryListResponse, RunResponse } from "./types";
 import { RUNBOOK_CONTENT } from "./runbook-content.generated";
 
-const FLOWS_API = "https://flows-api.jetty.io/api/v1";
+const MISE_HOST = "https://flows-api.jetty.io";
 const COLLECTION = "pdf2croissant";
 const TASK = "pdf2mlcroissant";
 
@@ -11,7 +11,7 @@ function getToken(): string {
   return token;
 }
 
-function headers(): HeadersInit {
+function authHeader(): Record<string, string> {
   return { Authorization: `Bearer ${getToken()}` };
 }
 
@@ -20,7 +20,7 @@ export function loadRunbook(): string {
   return RUNBOOK_CONTENT;
 }
 
-/** Upload a PDF via /sandbox/upload. Returns storage file_paths. */
+/** Upload files via /api/v1/sandbox/upload. Returns storage file_paths. */
 export async function uploadFile(
   pdf: ArrayBuffer,
   filename: string
@@ -28,9 +28,9 @@ export async function uploadFile(
   const form = new FormData();
   form.append("files", new Blob([pdf], { type: "application/pdf" }), filename);
 
-  const res = await fetch(`${FLOWS_API}/sandbox/upload`, {
+  const res = await fetch(`${MISE_HOST}/api/v1/sandbox/upload`, {
     method: "POST",
-    headers: headers(),
+    headers: authHeader(),
     body: form,
   });
 
@@ -44,8 +44,8 @@ export async function uploadFile(
 }
 
 /**
- * Launch a run via the /run/ JSON endpoint.
- * Uploads are done separately via /sandbox/upload and referenced by file_paths.
+ * Launch a run via /v1/chat/completions (spot sandbox pattern).
+ * Falls back to /api/v1/run/ if chat completions is unavailable.
  */
 export async function launchRun(params: {
   filePaths: string[];
@@ -55,18 +55,100 @@ export async function launchRun(params: {
 }): Promise<RunResponse> {
   const runbook = loadRunbook();
 
+  const userParts = [
+    `Generate a Croissant JSON-LD file for the dataset described in the uploaded PDF.`,
+    `PDF filename: ${params.pdfFilename}`,
+    params.datasetName && `Dataset name: ${params.datasetName}`,
+    params.huggingfaceUrl && `HuggingFace URL: ${params.huggingfaceUrl}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  // Try /v1/chat/completions first (spot sandbox pattern)
+  try {
+    const result = await launchViaChatCompletions(runbook, userParts, params.filePaths);
+    if (result) return result;
+  } catch (e) {
+    console.warn("Chat completions failed, falling back to /run/:", e);
+  }
+
+  // Fallback: /api/v1/run/ JSON endpoint
+  return launchViaRunEndpoint(runbook, params);
+}
+
+/** Primary: spot-style /v1/chat/completions with jetty.runbook=true */
+async function launchViaChatCompletions(
+  runbook: string,
+  userContent: string,
+  filePaths: string[]
+): Promise<RunResponse | null> {
+  const body = {
+    model: "claude-sonnet-4-6",
+    messages: [
+      { role: "system", content: runbook },
+      { role: "user", content: userContent },
+    ],
+    stream: false,
+    jetty: {
+      runbook: true,
+      collection: COLLECTION,
+      task: TASK,
+      ...(filePaths.length > 0 ? { file_paths: filePaths } : {}),
+    },
+  };
+
+  const res = await fetch(`${MISE_HOST}/v1/chat/completions`, {
+    method: "POST",
+    headers: { ...authHeader(), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(30_000), // short timeout for launch — don't wait for completion
+  });
+
+  const responseText = await res.text();
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    // Non-JSON 500 — endpoint is down
+    return null;
+  }
+
+  const hasTrajectory = !!(
+    data?.jetty_metadata?.trajectory_id ||
+    data?.jetty_metadata?.workflow_id
+  );
+
+  if (!hasTrajectory) return null;
+
+  const workflowId: string =
+    data.jetty_metadata?.workflow_id ?? data.id ?? "";
+  const trajectoryId: string =
+    data.jetty_metadata?.trajectory_id ??
+    workflowId.split("--").pop() ??
+    workflowId;
+
+  return { trajectory_id: trajectoryId, workflow_id: workflowId };
+}
+
+/** Fallback: /api/v1/run/ JSON endpoint */
+async function launchViaRunEndpoint(
+  runbook: string,
+  params: {
+    filePaths: string[];
+    pdfFilename: string;
+    datasetName?: string;
+    huggingfaceUrl?: string;
+  }
+): Promise<RunResponse> {
   const vars: Record<string, string> = {
     pdf_filename: params.pdfFilename,
   };
   if (params.datasetName) vars.dataset_name = params.datasetName;
   if (params.huggingfaceUrl) vars.huggingface_url = params.huggingfaceUrl;
 
-  const res = await fetch(`${FLOWS_API}/run/${COLLECTION}/${TASK}`, {
+  const res = await fetch(`${MISE_HOST}/api/v1/run/${COLLECTION}/${TASK}`, {
     method: "POST",
-    headers: {
-      ...headers(),
-      "Content-Type": "application/json",
-    },
+    headers: { ...authHeader(), "Content-Type": "application/json" },
     body: JSON.stringify({
       bakery_host: "https://dock.jetty.io",
       init_params: {
@@ -99,8 +181,8 @@ export async function listTrajectories(
   limit = 50
 ): Promise<TrajectoryListResponse> {
   const res = await fetch(
-    `${FLOWS_API}/db/trajectories/${COLLECTION}/${TASK}?limit=${limit}&page=1`,
-    { headers: headers(), next: { revalidate: 0 } }
+    `${MISE_HOST}/api/v1/db/trajectories/${COLLECTION}/${TASK}?limit=${limit}&page=1`,
+    { headers: authHeader(), next: { revalidate: 0 } }
   );
   if (!res.ok) {
     const text = await res.text();
@@ -113,8 +195,8 @@ export async function getTrajectory(
   trajectoryId: string
 ): Promise<Trajectory> {
   const res = await fetch(
-    `${FLOWS_API}/db/trajectory/${COLLECTION}/${TASK}/${trajectoryId}`,
-    { headers: headers(), next: { revalidate: 0 } }
+    `${MISE_HOST}/api/v1/db/trajectory/${COLLECTION}/${TASK}/${trajectoryId}`,
+    { headers: authHeader(), next: { revalidate: 0 } }
   );
   if (!res.ok) {
     const text = await res.text();
@@ -124,8 +206,8 @@ export async function getTrajectory(
 }
 
 export async function downloadFile(path: string): Promise<Response> {
-  const res = await fetch(`${FLOWS_API}/file/${path}`, {
-    headers: headers(),
+  const res = await fetch(`${MISE_HOST}/api/v1/file/${path}`, {
+    headers: authHeader(),
   });
   if (!res.ok) {
     throw new Error(`Failed to download file: ${res.status}`);

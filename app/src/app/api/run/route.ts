@@ -20,11 +20,11 @@ export async function POST(req: NextRequest) {
     const huggingfaceUrl =
       (formData.get("huggingface_url") as string) || undefined;
 
-    // Step 1: Upload the PDF via /sandbox/upload
+    // Step 1: Upload the PDF via /api/v1/sandbox/upload
     const pdf = await file.arrayBuffer();
     const filePaths = await uploadFile(pdf, file.name);
 
-    // Step 2: Launch the run via /v1/chat/completions
+    // Step 2: Launch via /v1/chat/completions with jetty.runbook=true
     const run = await launchRun({
       filePaths,
       pdfFilename: file.name,
