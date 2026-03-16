@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadFile, launchRun } from "@/lib/jetty";
 
+// Runbook execution can take several minutes
+export const maxDuration = 300;
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -17,13 +20,13 @@ export async function POST(req: NextRequest) {
     const huggingfaceUrl =
       (formData.get("huggingface_url") as string) || undefined;
 
-    // Step 1: Upload the PDF
+    // Step 1: Upload the PDF via /sandbox/upload
     const pdf = await file.arrayBuffer();
-    const fileId = await uploadFile(pdf, file.name);
+    const filePaths = await uploadFile(pdf, file.name);
 
-    // Step 2: Launch the run (JSON endpoint, reference file by ID)
+    // Step 2: Launch the run via /v1/chat/completions
     const run = await launchRun({
-      fileId,
+      filePaths,
       pdfFilename: file.name,
       datasetName,
       huggingfaceUrl,

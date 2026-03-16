@@ -20,16 +20,15 @@ export function loadRunbook(): string {
   return RUNBOOK_CONTENT;
 }
 
-/** Upload a PDF via the /v1/files API. Returns the file ID. */
+/** Upload a PDF via /sandbox/upload. Returns storage file_paths. */
 export async function uploadFile(
   pdf: ArrayBuffer,
   filename: string
-): Promise<string> {
+): Promise<string[]> {
   const form = new FormData();
-  form.append("file", new Blob([pdf], { type: "application/pdf" }), filename);
-  form.append("purpose", "sandbox");
+  form.append("files", new Blob([pdf], { type: "application/pdf" }), filename);
 
-  const res = await fetch(`${FLOWS_API}/files`, {
+  const res = await fetch(`${FLOWS_API}/sandbox/upload`, {
     method: "POST",
     headers: headers(),
     body: form,
@@ -41,15 +40,15 @@ export async function uploadFile(
   }
 
   const data = await res.json();
-  return data.id;
+  return data.file_paths;
 }
 
 /**
  * Launch a run via the /run/ JSON endpoint.
- * The PDF is uploaded separately via /files and referenced by ID.
+ * Uploads are done separately via /sandbox/upload and referenced by file_paths.
  */
 export async function launchRun(params: {
-  fileId: string;
+  filePaths: string[];
   pdfFilename: string;
   datasetName?: string;
   huggingfaceUrl?: string;
@@ -78,7 +77,7 @@ export async function launchRun(params: {
         snapshot: "python312-uv",
         timeout_sec: 1200,
         network_enabled: true,
-        file_paths: [params.fileId],
+        file_paths: params.filePaths,
       },
     }),
   });
