@@ -1,0 +1,138 @@
+import type { Trajectory, TrajectoryListResponse, RunResponse } from "./types";
+import { RUNBOOK_CONTENT } from "./runbook-content.generated";
+
+const FLOWS_API = "https://flows-api.jetty.io/api/v1";
+const COLLECTION = "jettyio";
+const TASK = "pdf2mlcroissant";
+
+function getToken(): string {
+  const token = process.env.JETTY_API_TOKEN;
+  if (!token) throw new Error("JETTY_API_TOKEN is not set");
+  return token;
+}
+
+function headers(): HeadersInit {
+  return { Authorization: `Bearer ${getToken()}` };
+}
+
+/** Returns the embedded RUNBOOK.md content. */
+export function loadRunbook(): string {
+  return RUNBOOK_CONTENT;
+}
+
+/** Upload a PDF to Jetty via the /v1/files API. Returns the file ID. */
+export async function uploadFile(pdf: ArrayBuffer, filename: string): Promise<string> {
+  const form = new FormData();
+  form.append("file", new Blob([pdf]), filename);
+  form.append("purpose", "sandbox");
+
+  const res = await fetch(`${FLOWS_API}/files`, {
+    method: "POST",
+    headers: headers(),
+    body: form,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to upload file: ${res.status} ${text}`);
+  }
+
+  const data = await res.json();
+  return data.id;
+}
+
+/** Launch a run via the OpenAI-compatible chat completions endpoint. */
+export async function launchRun(params: {
+  fileId: string;
+  datasetName?: string;
+  huggingfaceUrl?: string;
+}): Promise<RunResponse> {
+  const runbook = loadRunbook();
+
+  const userParts = [
+    "Generate a Croissant JSON-LD file for the dataset described in the uploaded PDF.",
+    params.datasetName && `Dataset name: ${params.datasetName}`,
+    params.huggingfaceUrl && `HuggingFace URL: ${params.huggingfaceUrl}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const res = await fetch(`${FLOWS_API}/chat/completions`, {
+    method: "POST",
+    headers: {
+      ...headers(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      messages: [
+        { role: "system", content: runbook },
+        { role: "user", content: userParts },
+      ],
+      stream: false,
+      jetty: {
+        runbook: true,
+        collection: COLLECTION,
+        task: TASK,
+        agent: "claude-code",
+        snapshot: "python312-uv",
+        timeout_sec: 1200,
+        cpus: 4,
+        memory: "8G",
+        network_enabled: true,
+        files: [params.fileId],
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to launch run: ${res.status} ${text}`);
+  }
+
+  const data = await res.json();
+  const workflowId: string =
+    data.jetty_metadata?.workflow_id ?? data.id ?? "";
+  const parts = workflowId.split("--");
+  const trajectoryId = parts[parts.length - 1] || workflowId;
+
+  return { trajectory_id: trajectoryId, workflow_id: workflowId };
+}
+
+export async function listTrajectories(
+  limit = 50
+): Promise<TrajectoryListResponse> {
+  const res = await fetch(
+    `${FLOWS_API}/db/trajectories/${COLLECTION}/${TASK}?limit=${limit}&page=1`,
+    { headers: headers(), next: { revalidate: 0 } }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to list trajectories: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
+export async function getTrajectory(
+  trajectoryId: string
+): Promise<Trajectory> {
+  const res = await fetch(
+    `${FLOWS_API}/db/trajectory/${COLLECTION}/${TASK}/${trajectoryId}`,
+    { headers: headers(), next: { revalidate: 0 } }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to get trajectory: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
+export async function downloadFile(path: string): Promise<Response> {
+  const res = await fetch(`${FLOWS_API}/file/${path}`, {
+    headers: headers(),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to download file: ${res.status}`);
+  }
+  return res;
+}

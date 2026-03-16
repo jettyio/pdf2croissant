@@ -1,0 +1,6 @@
+.env
+app/node_modules
+app/.next
+app/.env.local
+app/src/lib/runbook-content.generated.ts
+.DS_Store
