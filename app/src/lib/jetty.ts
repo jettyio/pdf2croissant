@@ -44,8 +44,8 @@ export async function uploadFile(
 }
 
 /**
- * Launch a run via /v1/chat/completions (spot sandbox pattern).
- * Falls back to /api/v1/run/ if chat completions is unavailable.
+ * Launch a run via /v1/chat/completions with jetty.runbook=true.
+ * Follows the spot sandbox panel pattern.
  */
 export async function launchRun(params: {
   filePaths: string[];
@@ -64,36 +64,20 @@ export async function launchRun(params: {
     .filter(Boolean)
     .join("\n");
 
-  // Try /v1/chat/completions first (spot sandbox pattern)
-  try {
-    const result = await launchViaChatCompletions(runbook, userParts, params.filePaths);
-    if (result) return result;
-  } catch (e) {
-    console.warn("Chat completions failed, falling back to /run/:", e);
-  }
-
-  // Fallback: /api/v1/run/ JSON endpoint
-  return launchViaRunEndpoint(runbook, params);
-}
-
-/** Primary: spot-style /v1/chat/completions with jetty.runbook=true */
-async function launchViaChatCompletions(
-  runbook: string,
-  userContent: string,
-  filePaths: string[]
-): Promise<RunResponse | null> {
   const body = {
     model: "claude-sonnet-4-6",
     messages: [
       { role: "system", content: runbook },
-      { role: "user", content: userContent },
+      { role: "user", content: userParts },
     ],
     stream: false,
     jetty: {
       runbook: true,
       collection: COLLECTION,
       task: TASK,
-      ...(filePaths.length > 0 ? { file_paths: filePaths } : {}),
+      ...(params.filePaths.length > 0
+        ? { file_paths: params.filePaths }
+        : {}),
     },
   };
 
@@ -101,16 +85,17 @@ async function launchViaChatCompletions(
     method: "POST",
     headers: { ...authHeader(), "Content-Type": "application/json" },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000), // short timeout for launch — don't wait for completion
+    signal: AbortSignal.timeout(290_000),
   });
 
+  // The upstream may return 500 even when the task started successfully.
+  // Parse the body and check for valid trajectory data before treating as error.
   const responseText = await res.text();
   let data;
   try {
     data = JSON.parse(responseText);
   } catch {
-    // Non-JSON 500 — endpoint is down
-    return null;
+    data = null;
   }
 
   const hasTrajectory = !!(
@@ -118,61 +103,20 @@ async function launchViaChatCompletions(
     data?.jetty_metadata?.workflow_id
   );
 
-  if (!hasTrajectory) return null;
+  if (!res.ok && !hasTrajectory) {
+    const errMsg =
+      typeof data?.error === "object"
+        ? data.error.message
+        : data?.error || data?.detail || `HTTP ${res.status}`;
+    throw new Error(`Failed to launch run: ${errMsg}`);
+  }
 
   const workflowId: string =
-    data.jetty_metadata?.workflow_id ?? data.id ?? "";
+    data?.jetty_metadata?.workflow_id ?? data?.id ?? "";
   const trajectoryId: string =
-    data.jetty_metadata?.trajectory_id ??
+    data?.jetty_metadata?.trajectory_id ??
     workflowId.split("--").pop() ??
     workflowId;
-
-  return { trajectory_id: trajectoryId, workflow_id: workflowId };
-}
-
-/** Fallback: /api/v1/run/ JSON endpoint */
-async function launchViaRunEndpoint(
-  runbook: string,
-  params: {
-    filePaths: string[];
-    pdfFilename: string;
-    datasetName?: string;
-    huggingfaceUrl?: string;
-  }
-): Promise<RunResponse> {
-  const vars: Record<string, string> = {
-    pdf_filename: params.pdfFilename,
-  };
-  if (params.datasetName) vars.dataset_name = params.datasetName;
-  if (params.huggingfaceUrl) vars.huggingface_url = params.huggingfaceUrl;
-
-  const res = await fetch(`${MISE_HOST}/api/v1/run/${COLLECTION}/${TASK}`, {
-    method: "POST",
-    headers: { ...authHeader(), "Content-Type": "application/json" },
-    body: JSON.stringify({
-      bakery_host: "https://dock.jetty.io",
-      init_params: {
-        instruction: runbook,
-        vars,
-        agent: "claude-code",
-        model: "claude-sonnet-4-6",
-        snapshot: "python312-uv",
-        timeout_sec: 1200,
-        network_enabled: true,
-        file_paths: params.filePaths,
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to launch run: ${res.status} ${text}`);
-  }
-
-  const raw = await res.json();
-  const workflowId: string = raw.workflow_id ?? "";
-  const parts = workflowId.split("--");
-  const trajectoryId = parts[parts.length - 1] || workflowId;
 
   return { trajectory_id: trajectoryId, workflow_id: workflowId };
 }
