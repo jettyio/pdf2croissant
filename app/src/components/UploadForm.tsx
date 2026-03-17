@@ -67,8 +67,19 @@ export function UploadForm() {
 
       const res = await fetch("/api/run", { method: "POST", body: form });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? `Request failed: ${res.status}`);
+        if (res.status === 413) {
+          throw new Error(
+            `File too large for upload — maximum is ${MAX_FILE_SIZE_MB} MB`
+          );
+        }
+        let message = `Request failed: ${res.status}`;
+        try {
+          const data = await res.json();
+          if (data.error) message = data.error;
+        } catch {
+          // Response wasn't JSON — use the status-based message
+        }
+        throw new Error(message);
       }
 
       const data = await res.json();
