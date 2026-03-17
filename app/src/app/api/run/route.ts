@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
       pdfFilename,
       datasetName: body.dataset_name || undefined,
       huggingfaceUrl: body.huggingface_url || undefined,
+      model: body.model || undefined,
     });
 
     return NextResponse.json(run);

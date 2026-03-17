@@ -39,6 +39,12 @@ const statusConfig = {
   },
 } as const;
 
+const MODEL_SHORT: Record<string, string> = {
+  "claude-opus-4-6": "Opus",
+  "claude-sonnet-4-6": "Sonnet",
+  "gemini-3-pro-preview": "Gemini",
+};
+
 export function RunHistory() {
   const { data, isLoading, error } = useTrajectories();
 
@@ -87,6 +93,9 @@ export function RunHistory() {
           (t.init_params?.vars?.dataset_name as string) ??
           t.trajectory_id.slice(0, 12);
 
+        const modelId = t.init_params?.model as string | undefined;
+        const modelLabel = modelId ? MODEL_SHORT[modelId] ?? modelId : null;
+
         return (
           <Link
             key={t.trajectory_id}
@@ -107,6 +116,12 @@ export function RunHistory() {
             <span className="min-w-0 flex-1 truncate text-sm text-gray-700">
               {label.length > 80 ? label.slice(0, 80) + "..." : label}
             </span>
+
+            {modelLabel && (
+              <span className="hidden shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 sm:block">
+                {modelLabel}
+              </span>
+            )}
 
             <span className="hidden shrink-0 text-xs text-gray-400 sm:block">
               {new Date(t.created).toLocaleString()}

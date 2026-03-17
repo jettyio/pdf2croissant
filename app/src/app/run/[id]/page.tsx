@@ -88,9 +88,22 @@ function MetricCard({
   );
 }
 
+const MODEL_LABELS: Record<string, { label: string; sub: string }> = {
+  "claude-opus-4-6": { label: "Claude Opus", sub: "Claude Code" },
+  "claude-sonnet-4-6": { label: "Claude Sonnet", sub: "Claude Code" },
+  "gemini-3-pro-preview": { label: "Gemini Pro", sub: "Gemini CLI" },
+};
+
+function getModelInfo(trajectory: Trajectory) {
+  const model = trajectory.init_params?.model as string | undefined;
+  if (!model) return null;
+  return MODEL_LABELS[model] ?? { label: model, sub: "" };
+}
+
 function RunMetadata({ trajectory }: { trajectory: Trajectory }) {
   const created = trajectory.created;
   const updated = trajectory.updated;
+  const modelInfo = getModelInfo(trajectory);
 
   const lastStep = Object.values(trajectory.steps ?? {}).reduce<{
     ended?: string;
@@ -107,7 +120,7 @@ function RunMetadata({ trajectory }: { trajectory: Trajectory }) {
       : null;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <MetricCard label="Created">
         <span className="text-sm text-gray-700">
           {formatTimestamp(created)}
@@ -135,6 +148,16 @@ function RunMetadata({ trajectory }: { trajectory: Trajectory }) {
           {trajectory.status}
         </span>
       </MetricCard>
+      {modelInfo && (
+        <MetricCard label="Agent">
+          <span className="text-sm font-medium text-gray-700">
+            {modelInfo.label}
+          </span>
+          {modelInfo.sub && (
+            <span className="ml-1 text-xs text-gray-400">{modelInfo.sub}</span>
+          )}
+        </MetricCard>
+      )}
     </div>
   );
 }

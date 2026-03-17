@@ -52,6 +52,7 @@ export async function launchRun(params: {
   pdfFilename: string;
   datasetName?: string;
   huggingfaceUrl?: string;
+  model?: string;
 }): Promise<RunResponse> {
   const runbook = loadRunbook();
 
@@ -65,7 +66,7 @@ export async function launchRun(params: {
     .join("\n");
 
   const body = {
-    model: "claude-opus-4-6",
+    model: params.model || "claude-opus-4-6",
     messages: [
       { role: "system", content: runbook },
       { role: "user", content: userParts },
