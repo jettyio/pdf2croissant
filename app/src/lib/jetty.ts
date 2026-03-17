@@ -65,7 +65,7 @@ export async function launchRun(params: {
     .join("\n");
 
   const body = {
-    model: "claude-sonnet-4-6",
+    model: "claude-opus-4-6",
     messages: [
       { role: "system", content: runbook },
       { role: "user", content: userParts },
