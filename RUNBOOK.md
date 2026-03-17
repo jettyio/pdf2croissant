@@ -1,4 +1,4 @@
-# PDF → MLCommons Croissant — Agent Runbook
+# PDF → Croissant — Agent Runbook
 
 ## Objective
 
