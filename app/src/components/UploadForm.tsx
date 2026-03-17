@@ -8,6 +8,15 @@ import Link from "next/link";
 const MAX_FILE_SIZE_MB = 15;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
+type UploadStage = "idle" | "presigning" | "uploading" | "launching";
+
+const STAGE_LABELS: Record<UploadStage, string> = {
+  idle: "",
+  presigning: "Preparing upload...",
+  uploading: "Uploading PDF...",
+  launching: "Launching workflow...",
+};
+
 export function UploadForm() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -16,6 +25,8 @@ export function UploadForm() {
   const [huggingfaceUrl, setHuggingfaceUrl] = useState("");
   const [model, setModel] = useState("claude-opus-4-6");
   const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState<UploadStage>("idle");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [success, setSuccess] = useState<{ id: string; name: string } | null>(
@@ -58,23 +69,55 @@ export function UploadForm() {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    setUploadProgress(null);
 
     try {
-      // Upload PDF directly via FormData (App Router handles up to ~50 MB)
+      // Step 1: Get a presigned upload URL
+      setStage("presigning");
+      const presignRes = await fetch("/api/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          content_type: file.type || "application/pdf",
+        }),
+      });
+      if (!presignRes.ok) {
+        let message = `Failed to prepare upload: ${presignRes.status}`;
+        try {
+          const data = await presignRes.json();
+          if (data.error) message = data.error;
+        } catch {
+          // not JSON
+        }
+        throw new Error(message);
+      }
+      const { upload_url, storage_path } = await presignRes.json();
+
+      // Step 2: Upload file directly to presigned URL
+      setStage("uploading");
+      await uploadWithProgress(upload_url, file, (pct) => {
+        setUploadProgress(pct);
+      });
+
+      // Step 3: Launch the workflow with storage_path (no file in body)
+      setStage("launching");
+      setUploadProgress(null);
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("storage_path", storage_path);
+      formData.append("pdf_filename", file.name);
       if (datasetName.trim()) formData.append("dataset_name", datasetName.trim());
       if (huggingfaceUrl.trim()) formData.append("huggingface_url", huggingfaceUrl.trim());
       formData.append("model", model);
 
-      const res = await fetch("/api/run", {
+      const runRes = await fetch("/api/run", {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) {
-        let message = `Request failed: ${res.status}`;
+      if (!runRes.ok) {
+        let message = `Request failed: ${runRes.status}`;
         try {
-          const data = await res.json();
+          const data = await runRes.json();
           if (data.error) message = data.error;
         } catch {
           // not JSON
@@ -82,7 +125,7 @@ export function UploadForm() {
         throw new Error(message);
       }
 
-      const data = await res.json();
+      const data = await runRes.json();
 
       // Reset form and show success inline
       const fileName = file.name;
@@ -98,6 +141,8 @@ export function UploadForm() {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
+      setStage("idle");
+      setUploadProgress(null);
     }
   }
 
@@ -107,6 +152,8 @@ export function UploadForm() {
     const dropped = e.dataTransfer.files[0];
     if (dropped) selectFile(dropped);
   }
+
+  const statusLabel = STAGE_LABELS[stage];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -262,7 +309,7 @@ export function UploadForm() {
         {loading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Launching...
+            {statusLabel || "Launching..."}
           </>
         ) : (
           <>
@@ -271,6 +318,59 @@ export function UploadForm() {
           </>
         )}
       </button>
+
+      {/* Upload progress bar */}
+      {loading && uploadProgress !== null && (
+        <div className="w-full">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+            <div
+              className="h-full rounded-full bg-sky-500 transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-gray-500">{Math.round(uploadProgress)}% uploaded</p>
+        </div>
+      )}
     </form>
   );
+}
+
+/**
+ * Upload a file to a presigned URL using XMLHttpRequest for progress tracking.
+ */
+function uploadWithProgress(
+  url: string,
+  file: File,
+  onProgress: (pct: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("Content-Type", file.type || "application/pdf");
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) {
+        onProgress((e.loaded / e.total) * 100);
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(100);
+        resolve();
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new Error("Upload failed: network error"));
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(new Error("Upload was cancelled"));
+    });
+
+    xhr.send(file);
+  });
 }
