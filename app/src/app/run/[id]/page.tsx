@@ -141,7 +141,9 @@ function RunMetadata({ trajectory }: { trajectory: Trajectory }) {
 
 function AllFiles({ trajectory }: { trajectory: Trajectory }) {
   const [expanded, setExpanded] = useState(false);
-  const allFiles = extractAllFiles(trajectory);
+  const allFiles = extractAllFiles(trajectory).filter(
+    (f) => f.path.endsWith("summary.md") || f.path.endsWith("validation_report.json")
+  );
   if (allFiles.length === 0) return null;
 
   return (

@@ -75,6 +75,7 @@ export async function launchRun(params: {
       runbook: true,
       collection: COLLECTION,
       task: TASK,
+      snapshot: "python312-uv",
       ...(params.filePaths.length > 0
         ? { file_paths: params.filePaths }
         : {}),
