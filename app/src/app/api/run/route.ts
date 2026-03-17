@@ -7,20 +7,30 @@ export const runtime = "edge";
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
+
+    // Prefer presigned storage_path (new flow) over file upload (legacy flow)
+    const storagePath = formData.get("storage_path") as string | null;
     const file = formData.get("file") as File | null;
 
-    if (!file) {
+    let filePaths: string[];
+    let pdfFilename: string;
+
+    if (storagePath) {
+      // New flow: file was already uploaded via presigned URL
+      filePaths = [storagePath];
+      pdfFilename =
+        (formData.get("pdf_filename") as string) || storagePath.split("/").pop() || "document.pdf";
+    } else if (file) {
+      // Legacy flow: upload file through the server
+      const pdf = await file.arrayBuffer();
+      pdfFilename = file.name;
+      filePaths = await uploadFile(pdf, pdfFilename);
+    } else {
       return NextResponse.json(
-        { error: "A PDF file is required" },
+        { error: "Either storage_path or a PDF file is required" },
         { status: 400 }
       );
     }
-
-    const pdf = await file.arrayBuffer();
-    const pdfFilename = file.name;
-
-    // Upload the PDF to Jetty
-    const filePaths = await uploadFile(pdf, pdfFilename);
 
     // Launch the workflow
     const run = await launchRun({

@@ -43,6 +43,33 @@ export async function uploadFile(
   return data.file_paths;
 }
 
+/** Request a presigned upload URL for direct browser-to-storage uploads. */
+export async function requestPresignedUrl(
+  filename: string,
+  contentType: string
+): Promise<{
+  upload_url: string;
+  storage_path: string;
+  upload_id: string;
+  expires_in: number;
+}> {
+  const res = await fetch(`${MISE_HOST}/api/v1/sandbox/presign`, {
+    method: "POST",
+    headers: {
+      ...authHeader(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ filename, content_type: contentType }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Presign failed: ${res.status} ${text}`);
+  }
+
+  return res.json();
+}
+
 /**
  * Launch a run via /v1/chat/completions with jetty.runbook=true.
  * Follows the spot sandbox panel pattern.
