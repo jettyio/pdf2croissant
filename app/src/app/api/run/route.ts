@@ -1,49 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadFile, launchRun } from "@/lib/jetty";
+import { launchRun } from "@/lib/jetty";
 
 export const runtime = "edge";
-// Allow up to 10 minutes for upload + launch (Vercel Pro max for edge)
-export const maxDuration = 300;
 
-const MAX_FILE_SIZE_MB = 15;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-
+/** Accept a small JSON body with file_paths (from the client-side upload)
+ *  and launch the Jetty workflow. The PDF itself is uploaded directly from
+ *  the browser to Jetty, bypassing Vercel's 4.5 MB body size limit. */
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
+    const body = await req.json();
 
-    const file = formData.get("pdf") as File | null;
-    if (!file) {
+    const filePaths: string[] = body.file_paths;
+    const pdfFilename: string = body.pdf_filename;
+    if (!filePaths?.length || !pdfFilename) {
       return NextResponse.json(
-        { error: "A PDF file is required" },
+        { error: "file_paths and pdf_filename are required" },
         { status: 400 }
       );
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-      return NextResponse.json(
-        {
-          error: `File is ${sizeMB} MB — maximum allowed is ${MAX_FILE_SIZE_MB} MB`,
-        },
-        { status: 413 }
-      );
-    }
-
-    const datasetName = (formData.get("dataset_name") as string) || undefined;
-    const huggingfaceUrl =
-      (formData.get("huggingface_url") as string) || undefined;
-
-    // Step 1: Upload the PDF via /api/v1/sandbox/upload
-    const pdf = await file.arrayBuffer();
-    const filePaths = await uploadFile(pdf, file.name);
-
-    // Step 2: Launch via /v1/chat/completions with jetty.runbook=true
     const run = await launchRun({
       filePaths,
-      pdfFilename: file.name,
-      datasetName,
-      huggingfaceUrl,
+      pdfFilename,
+      datasetName: body.dataset_name || undefined,
+      huggingfaceUrl: body.huggingface_url || undefined,
     });
 
     return NextResponse.json(run);

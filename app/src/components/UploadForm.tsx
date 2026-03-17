@@ -59,25 +59,44 @@ export function UploadForm() {
     setSuccess(null);
 
     try {
-      const form = new FormData();
-      form.append("pdf", file);
-      if (datasetName.trim()) form.append("dataset_name", datasetName.trim());
-      if (huggingfaceUrl.trim())
-        form.append("huggingface_url", huggingfaceUrl.trim());
+      // Step 1: Upload PDF via streaming proxy (bypasses Vercel 4.5 MB limit)
+      const uploadForm = new FormData();
+      uploadForm.append("files", file, file.name);
 
-      const res = await fetch("/api/run", { method: "POST", body: form });
-      if (!res.ok) {
-        if (res.status === 413) {
-          throw new Error(
-            `File too large for upload — maximum is ${MAX_FILE_SIZE_MB} MB`
-          );
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadForm,
+      });
+      if (!uploadRes.ok) {
+        let message = `Upload failed: ${uploadRes.status}`;
+        try {
+          const errData = await uploadRes.json();
+          if (errData.error) message = errData.error;
+        } catch {
+          // not JSON
         }
+        throw new Error(message);
+      }
+      const { file_paths } = await uploadRes.json();
+
+      // Step 2: Launch the run (small JSON payload, no PDF)
+      const res = await fetch("/api/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file_paths,
+          pdf_filename: file.name,
+          dataset_name: datasetName.trim() || undefined,
+          huggingface_url: huggingfaceUrl.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
         let message = `Request failed: ${res.status}`;
         try {
           const data = await res.json();
           if (data.error) message = data.error;
         } catch {
-          // Response wasn't JSON — use the status-based message
+          // not JSON
         }
         throw new Error(message);
       }
