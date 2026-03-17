@@ -76,6 +76,7 @@ export async function launchRun(params: {
       collection: COLLECTION,
       task: TASK,
       snapshot: "python312-uv",
+      timeout_sec: 600,
       timeout_hint: 5,
       ...(params.filePaths.length > 0
         ? { file_paths: params.filePaths }
