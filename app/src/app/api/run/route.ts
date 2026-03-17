@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadFile, launchRun } from "@/lib/jetty";
 
-// Runbook execution can take several minutes
-export const maxDuration = 300;
+// Allow up to 10 minutes for upload + launch
+export const maxDuration = 600;
 
 export async function POST(req: NextRequest) {
   try {

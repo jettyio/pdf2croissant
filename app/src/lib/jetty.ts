@@ -76,6 +76,7 @@ export async function launchRun(params: {
       collection: COLLECTION,
       task: TASK,
       snapshot: "python312-uv",
+      timeout_hint: 5,
       ...(params.filePaths.length > 0
         ? { file_paths: params.filePaths }
         : {}),
@@ -86,7 +87,7 @@ export async function launchRun(params: {
     method: "POST",
     headers: { ...authHeader(), "Content-Type": "application/json" },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(290_000),
+    signal: AbortSignal.timeout(60_000),
   });
 
   // The upstream may return 500 even when the task started successfully.

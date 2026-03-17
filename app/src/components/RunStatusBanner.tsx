@@ -63,6 +63,11 @@ export function RunStatusBanner({
           {trajectory.trajectory_id}
         </span>
       </div>
+      {(trajectory.status === "pending" || trajectory.status === "running") && (
+        <p className="mt-1.5 text-sm text-gray-500">
+          This typically takes 2–3 minutes. Results will appear automatically.
+        </p>
+      )}
       {trajectory.error && (
         <p className="mt-1.5 text-sm text-red-600">{trajectory.error}</p>
       )}
