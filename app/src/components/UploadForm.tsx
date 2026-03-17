@@ -59,23 +59,25 @@ export function UploadForm() {
     setSuccess(null);
 
     try {
-      // Step 1: Upload PDF via streaming proxy (bypasses Vercel 4.5 MB limit)
+      // Step 1: Get upload credentials from our API (keeps token server-side
+      // until this point — but we must send it to the browser so the browser
+      // can upload directly to Jetty, bypassing Vercel's 4.5 MB body limit)
+      const credRes = await fetch("/api/upload");
+      if (!credRes.ok) throw new Error("Failed to get upload credentials");
+      const { upload_url, token } = await credRes.json();
+
+      // Step 2: Upload PDF directly to Jetty from the browser
       const uploadForm = new FormData();
       uploadForm.append("files", file, file.name);
 
-      const uploadRes = await fetch("/api/upload", {
+      const uploadRes = await fetch(upload_url, {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: uploadForm,
       });
       if (!uploadRes.ok) {
-        let message = `Upload failed: ${uploadRes.status}`;
-        try {
-          const errData = await uploadRes.json();
-          if (errData.error) message = errData.error;
-        } catch {
-          // not JSON
-        }
-        throw new Error(message);
+        const text = await uploadRes.text();
+        throw new Error(`Upload failed: ${uploadRes.status} ${text}`);
       }
       const { file_paths } = await uploadRes.json();
 
