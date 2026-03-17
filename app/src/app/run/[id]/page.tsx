@@ -139,6 +139,35 @@ function RunMetadata({ trajectory }: { trajectory: Trajectory }) {
   );
 }
 
+function CollapsibleSection({
+  icon,
+  title,
+  children,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section>
+      <button
+        onClick={() => setOpen(!open)}
+        className="mb-3 flex items-center gap-2 text-lg font-medium text-gray-900 hover:text-gray-700"
+      >
+        {open ? (
+          <ChevronDown className="h-4 w-4 text-gray-400" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-gray-400" />
+        )}
+        {icon}
+        {title}
+      </button>
+      {open && children}
+    </section>
+  );
+}
+
 function AllFiles({ trajectory }: { trajectory: Trajectory }) {
   const [expanded, setExpanded] = useState(false);
   const allFiles = extractAllFiles(trajectory).filter(
@@ -249,17 +278,6 @@ export default function RunPage() {
 
           <RunMetadata trajectory={trajectory} />
 
-          {/* Croissant JSON-LD */}
-          {croissantPath && (
-            <section>
-              <h3 className="mb-3 flex items-center gap-2 text-lg font-medium text-gray-900">
-                <FileJson2 className="h-5 w-5 text-sky-500" />
-                Croissant JSON-LD
-              </h3>
-              <CroissantViewer filePath={croissantPath} />
-            </section>
-          )}
-
           {/* Validation */}
           {validationPath && (
             <section>
@@ -278,19 +296,26 @@ export default function RunPage() {
                 <FileText className="h-5 w-5 text-sky-500" />
                 Executive Summary
               </h3>
-              <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <SummaryReport filePath={summaryPath} />
               </div>
             </section>
           )}
 
-          {/* Step Timeline */}
-          <section>
-            <h3 className="mb-3 text-lg font-medium text-gray-900">
-              Pipeline steps
-            </h3>
+          {/* Croissant JSON-LD — collapsed by default */}
+          {croissantPath && (
+            <CollapsibleSection
+              icon={<FileJson2 className="h-5 w-5 text-sky-500" />}
+              title="Croissant JSON-LD"
+            >
+              <CroissantViewer filePath={croissantPath} />
+            </CollapsibleSection>
+          )}
+
+          {/* Step Timeline — collapsed by default */}
+          <CollapsibleSection title="Pipeline steps">
             <StepTimeline trajectory={trajectory} />
-          </section>
+          </CollapsibleSection>
 
           {/* All files */}
           <AllFiles trajectory={trajectory} />

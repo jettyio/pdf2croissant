@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { Upload, FileText, Loader2, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Upload, FileText, Loader2, X, AlertCircle, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+
+const MAX_FILE_SIZE_MB = 15;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 export function UploadForm() {
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [datasetName, setDatasetName] = useState("");
@@ -13,13 +17,46 @@ export function UploadForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [success, setSuccess] = useState<{ id: string; name: string } | null>(
+    null
+  );
+
+  function validateFile(f: File): string | null {
+    if (f.size > MAX_FILE_SIZE_BYTES) {
+      const sizeMB = (f.size / 1024 / 1024).toFixed(1);
+      return `File is ${sizeMB} MB — maximum allowed is ${MAX_FILE_SIZE_MB} MB`;
+    }
+    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
+      return "Only PDF files are supported";
+    }
+    return null;
+  }
+
+  function selectFile(f: File) {
+    const validationError = validateFile(f);
+    if (validationError) {
+      setError(validationError);
+      setFile(null);
+      return;
+    }
+    setError(null);
+    setSuccess(null);
+    setFile(f);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
 
+    const validationError = validateFile(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const form = new FormData();
@@ -35,9 +72,20 @@ export function UploadForm() {
       }
 
       const data = await res.json();
-      router.push(`/run/${data.trajectory_id}`);
+
+      // Reset form and show success inline
+      const fileName = file.name;
+      setFile(null);
+      setDatasetName("");
+      setHuggingfaceUrl("");
+      setSuccess({ id: data.trajectory_id, name: fileName });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+
+      // Refresh the run history table
+      queryClient.invalidateQueries({ queryKey: ["trajectories"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
       setLoading(false);
     }
   }
@@ -46,9 +94,7 @@ export function UploadForm() {
     e.preventDefault();
     setDragOver(false);
     const dropped = e.dataTransfer.files[0];
-    if (dropped?.type === "application/pdf") {
-      setFile(dropped);
-    }
+    if (dropped) selectFile(dropped);
   }
 
   return (
@@ -85,6 +131,7 @@ export function UploadForm() {
                 onClick={(e) => {
                   e.stopPropagation();
                   setFile(null);
+                  setError(null);
                 }}
                 className="rounded-full p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
               >
@@ -100,7 +147,8 @@ export function UploadForm() {
                 Drop a PDF here or click to browse
               </p>
               <p className="text-xs text-gray-400">
-                Academic paper describing an ML dataset
+                Academic paper describing an ML dataset (max {MAX_FILE_SIZE_MB}{" "}
+                MB)
               </p>
             </div>
           </>
@@ -112,7 +160,7 @@ export function UploadForm() {
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) setFile(f);
+            if (f) selectFile(f);
           }}
         />
       </div>
@@ -145,7 +193,27 @@ export function UploadForm() {
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {success && (
+        <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+          <p className="text-sm text-green-700">
+            <strong>{success.name}</strong> submitted.{" "}
+            <Link
+              href={`/run/${success.id}`}
+              className="font-medium text-green-800 underline underline-offset-2 hover:text-green-900"
+            >
+              View run
+            </Link>
+          </p>
+        </div>
+      )}
 
       <button
         type="submit"

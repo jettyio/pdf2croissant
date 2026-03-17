@@ -4,6 +4,9 @@ import { uploadFile, launchRun } from "@/lib/jetty";
 // Allow up to 10 minutes for upload + launch
 export const maxDuration = 600;
 
+const MAX_FILE_SIZE_MB = 15;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -13,6 +16,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "A PDF file is required" },
         { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+      return NextResponse.json(
+        {
+          error: `File is ${sizeMB} MB — maximum allowed is ${MAX_FILE_SIZE_MB} MB`,
+        },
+        { status: 413 }
       );
     }
 
