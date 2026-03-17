@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { upload } from "@vercel/blob/client";
 import { Upload, FileText, Loader2, X, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
@@ -61,23 +60,16 @@ export function UploadForm() {
     setSuccess(null);
 
     try {
-      // Step 1: Upload PDF to Vercel Blob (bypasses 4.5 MB function limit)
-      const blob = await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-      });
+      // Upload PDF directly via FormData (App Router handles up to ~50 MB)
+      const formData = new FormData();
+      formData.append("file", file);
+      if (datasetName.trim()) formData.append("dataset_name", datasetName.trim());
+      if (huggingfaceUrl.trim()) formData.append("huggingface_url", huggingfaceUrl.trim());
+      formData.append("model", model);
 
-      // Step 2: Launch the run — server fetches blob, uploads to Jetty, deletes blob
       const res = await fetch("/api/run", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          blob_url: blob.url,
-          pdf_filename: file.name,
-          dataset_name: datasetName.trim() || undefined,
-          huggingface_url: huggingfaceUrl.trim() || undefined,
-          model,
-        }),
+        body: formData,
       });
       if (!res.ok) {
         let message = `Request failed: ${res.status}`;

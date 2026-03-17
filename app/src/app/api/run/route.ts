@@ -1,47 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { del } from "@vercel/blob";
 import { uploadFile, launchRun } from "@/lib/jetty";
 
-// Allow up to 10 minutes for blob fetch + Jetty upload + launch
-export const maxDuration = 600;
+// Use Edge Runtime to support large file uploads (up to ~100 MB)
+export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
 
-    const blobUrl: string | undefined = body.blob_url;
-    const pdfFilename: string | undefined = body.pdf_filename;
-
-    if (!blobUrl || !pdfFilename) {
+    if (!file) {
       return NextResponse.json(
-        { error: "blob_url and pdf_filename are required" },
+        { error: "A PDF file is required" },
         { status: 400 }
       );
     }
 
-    // Step 1: Fetch the PDF from Vercel Blob (no size limit server-side)
-    const blobRes = await fetch(blobUrl);
-    if (!blobRes.ok) {
-      return NextResponse.json(
-        { error: `Failed to fetch blob: ${blobRes.status}` },
-        { status: 500 }
-      );
-    }
-    const pdf = await blobRes.arrayBuffer();
+    const pdf = await file.arrayBuffer();
+    const pdfFilename = file.name;
 
-    // Step 2: Upload the PDF to Jetty
+    // Upload the PDF to Jetty
     const filePaths = await uploadFile(pdf, pdfFilename);
 
-    // Step 3: Clean up the blob (fire-and-forget)
-    del(blobUrl).catch(() => {});
-
-    // Step 4: Launch the workflow
+    // Launch the workflow
     const run = await launchRun({
       filePaths,
       pdfFilename,
-      datasetName: body.dataset_name || undefined,
-      huggingfaceUrl: body.huggingface_url || undefined,
-      model: body.model || undefined,
+      datasetName: (formData.get("dataset_name") as string) || undefined,
+      huggingfaceUrl: (formData.get("huggingface_url") as string) || undefined,
+      model: (formData.get("model") as string) || undefined,
     });
 
     return NextResponse.json(run);
