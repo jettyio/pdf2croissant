@@ -341,6 +341,32 @@ Write `/app/results/summary.md` with the following structure:
 
 ---
 
+## Step 8: Final Verification (Required)
+
+Before declaring the task complete, verify that all three required output files exist and are non-empty:
+
+```bash
+# All three files MUST exist and be non-empty
+for f in /app/results/summary.md /app/results/croissant.json /app/results/validation_report.json; do
+  if [ ! -s "$f" ]; then
+    echo "MISSING OR EMPTY: $f"
+    exit 1
+  fi
+  echo "✓ $f ($(wc -c < "$f") bytes)"
+done
+echo "All required outputs present."
+```
+
+**Do NOT consider the task complete unless all three files are confirmed present and non-empty.** If any file is missing, go back and produce it before finishing.
+
+| File | Required Contents |
+|------|-------------------|
+| `summary.md` | Executive summary following the template in Step 7 |
+| `croissant.json` | Valid JSON-LD with `@context`, `@type`, `conformsTo`, `name`, and `description` at minimum |
+| `validation_report.json` | Structured JSON with `stages` array and `overall_passed` boolean |
+
+---
+
 ## Tips
 
 - **The paper is the primary source of truth.** Do not hallucinate metadata that isn't in the paper. If something is unclear, leave it out and document the gap.
