@@ -13,23 +13,25 @@ You are given an academic paper (PDF) that introduces or describes a machine lea
 
 ---
 
+## REQUIRED OUTPUT FILES (MANDATORY)
+
+**You MUST write all three of the following files to `/app/results/`. The task is NOT complete until every file exists and is non-empty. No exceptions.**
+
+| File | Description |
+|------|-------------|
+| `/app/results/croissant.json` | The generated Croissant JSON-LD metadata file |
+| `/app/results/summary.md` | Executive summary (markdown) |
+| `/app/results/validation_report.json` | Structured validation results |
+
+If you finish your analysis but have not written all three files, go back and write them before stopping.
+
+---
+
 ## Parameters
 
 - `{{pdf_filename}}` — The uploaded PDF file (available at `/app/uploads/{{pdf_filename}}`)
 - `{{huggingface_url}}` — Optional HuggingFace dataset URL for cross-referencing (may be empty)
 - `{{dataset_name}}` — Optional dataset name override (may be empty)
-
----
-
-## Output Files
-
-Write all outputs to `/app/results/`:
-
-| File | Description |
-|------|-------------|
-| `croissant.json` | The generated Croissant JSON-LD metadata file |
-| `summary.md` | Executive summary (markdown) |
-| `validation_report.json` | Structured validation results |
 
 ---
 
@@ -341,29 +343,32 @@ Write `/app/results/summary.md` with the following structure:
 
 ---
 
-## Step 8: Final Verification (Required)
+## Step 8: Final Checklist (MANDATORY — do not skip)
 
-Before declaring the task complete, verify that all three required output files exist and are non-empty:
+You MUST complete every item on this checklist before finishing. Run the verification script, then confirm each item.
+
+### Verification script
 
 ```bash
-# All three files MUST exist and be non-empty
-for f in /app/results/summary.md /app/results/croissant.json /app/results/validation_report.json; do
+# Run this BEFORE declaring the task complete
+echo "=== FINAL OUTPUT VERIFICATION ==="
+for f in /app/results/croissant.json /app/results/summary.md /app/results/validation_report.json; do
   if [ ! -s "$f" ]; then
-    echo "MISSING OR EMPTY: $f"
-    exit 1
+    echo "FAIL: $f is missing or empty"
+  else
+    echo "PASS: $f ($(wc -c < "$f") bytes)"
   fi
-  echo "✓ $f ($(wc -c < "$f") bytes)"
 done
-echo "All required outputs present."
 ```
 
-**Do NOT consider the task complete unless all three files are confirmed present and non-empty.** If any file is missing, go back and produce it before finishing.
+### Checklist
 
-| File | Required Contents |
-|------|-------------------|
-| `summary.md` | Executive summary following the template in Step 7 |
-| `croissant.json` | Valid JSON-LD with `@context`, `@type`, `conformsTo`, `name`, and `description` at minimum |
-| `validation_report.json` | Structured JSON with `stages` array and `overall_passed` boolean |
+- [ ] `/app/results/croissant.json` exists, is non-empty, and contains valid JSON-LD with at least `@context`, `@type`, `conformsTo`, `name`, and `description`
+- [ ] `/app/results/validation_report.json` exists, is non-empty, and contains a JSON object with `stages` array and `overall_passed` boolean
+- [ ] `/app/results/summary.md` exists, is non-empty, and follows the executive summary template from Step 7
+- [ ] The verification script above printed PASS for all three files
+
+**If ANY item fails, go back and fix it. Do NOT finish until all items pass.**
 
 ---
 
