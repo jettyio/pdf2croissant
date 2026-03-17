@@ -1,22 +1,28 @@
-import { NextResponse } from "next/server";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { NextRequest, NextResponse } from "next/server";
 
-const MISE_HOST = "https://flows-api.jetty.io";
+/** Vercel Blob client-upload token exchange.
+ *  The browser uploads the PDF directly to Vercel Blob (no 4.5 MB limit),
+ *  then /api/run reads the blob to forward to Jetty. */
+export async function POST(req: NextRequest) {
+  const body = (await req.json()) as HandleUploadBody;
 
-/** Return a short-lived upload credential so the browser can upload
- *  the PDF directly to Jetty — bypassing Vercel's 4.5 MB body limit.
- *  The token is scoped to the upload endpoint only in practice since
- *  the client only uses it for that one call. */
-export async function GET() {
-  const token = process.env.JETTY_API_TOKEN;
-  if (!token) {
-    return NextResponse.json(
-      { error: "Server misconfigured: missing API token" },
-      { status: 500 }
-    );
+  try {
+    const jsonResponse = await handleUpload({
+      body,
+      request: req,
+      onBeforeGenerateToken: async () => ({
+        allowedContentTypes: ["application/pdf"],
+        maximumSizeInBytes: 15 * 1024 * 1024, // 15 MB
+      }),
+      onUploadCompleted: async () => {
+        // Nothing to do — /api/run will process the blob
+      },
+    });
+
+    return NextResponse.json(jsonResponse);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
-
-  return NextResponse.json({
-    upload_url: `${MISE_HOST}/api/v1/sandbox/upload`,
-    token,
-  });
 }

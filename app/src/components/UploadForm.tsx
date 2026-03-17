@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { upload } from "@vercel/blob/client";
 import { Upload, FileText, Loader2, X, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
@@ -59,34 +60,18 @@ export function UploadForm() {
     setSuccess(null);
 
     try {
-      // Step 1: Get upload credentials from our API (keeps token server-side
-      // until this point — but we must send it to the browser so the browser
-      // can upload directly to Jetty, bypassing Vercel's 4.5 MB body limit)
-      const credRes = await fetch("/api/upload");
-      if (!credRes.ok) throw new Error("Failed to get upload credentials");
-      const { upload_url, token } = await credRes.json();
-
-      // Step 2: Upload PDF directly to Jetty from the browser
-      const uploadForm = new FormData();
-      uploadForm.append("files", file, file.name);
-
-      const uploadRes = await fetch(upload_url, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: uploadForm,
+      // Step 1: Upload PDF to Vercel Blob (bypasses 4.5 MB function limit)
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
       });
-      if (!uploadRes.ok) {
-        const text = await uploadRes.text();
-        throw new Error(`Upload failed: ${uploadRes.status} ${text}`);
-      }
-      const { file_paths } = await uploadRes.json();
 
-      // Step 2: Launch the run (small JSON payload, no PDF)
+      // Step 2: Launch the run — server fetches blob, uploads to Jetty, deletes blob
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          file_paths,
+          blob_url: blob.url,
           pdf_filename: file.name,
           dataset_name: datasetName.trim() || undefined,
           huggingface_url: huggingfaceUrl.trim() || undefined,

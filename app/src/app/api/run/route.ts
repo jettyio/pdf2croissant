@@ -1,24 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import { launchRun } from "@/lib/jetty";
+import { del } from "@vercel/blob";
+import { uploadFile, launchRun } from "@/lib/jetty";
 
-export const runtime = "edge";
+// Allow up to 10 minutes for blob fetch + Jetty upload + launch
+export const maxDuration = 600;
 
-/** Accept a small JSON body with file_paths (from the client-side upload)
- *  and launch the Jetty workflow. The PDF itself is uploaded directly from
- *  the browser to Jetty, bypassing Vercel's 4.5 MB body size limit. */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const filePaths: string[] = body.file_paths;
-    const pdfFilename: string = body.pdf_filename;
-    if (!filePaths?.length || !pdfFilename) {
+    const blobUrl: string | undefined = body.blob_url;
+    const pdfFilename: string | undefined = body.pdf_filename;
+
+    if (!blobUrl || !pdfFilename) {
       return NextResponse.json(
-        { error: "file_paths and pdf_filename are required" },
+        { error: "blob_url and pdf_filename are required" },
         { status: 400 }
       );
     }
 
+    // Step 1: Fetch the PDF from Vercel Blob (no size limit server-side)
+    const blobRes = await fetch(blobUrl);
+    if (!blobRes.ok) {
+      return NextResponse.json(
+        { error: `Failed to fetch blob: ${blobRes.status}` },
+        { status: 500 }
+      );
+    }
+    const pdf = await blobRes.arrayBuffer();
+
+    // Step 2: Upload the PDF to Jetty
+    const filePaths = await uploadFile(pdf, pdfFilename);
+
+    // Step 3: Clean up the blob (fire-and-forget)
+    del(blobUrl).catch(() => {});
+
+    // Step 4: Launch the workflow
     const run = await launchRun({
       filePaths,
       pdfFilename,
