@@ -27,9 +27,6 @@ export default function RootLayout({
                 >
                   <span className="text-sky-600">Croissant</span> Generator
                 </Link>
-                <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-600">
-                  MLCommons
-                </span>
               </div>
               <nav className="flex items-center gap-4">
                 <Link
