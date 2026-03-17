@@ -45,6 +45,23 @@ export default function RootLayout({
             </div>
           </header>
           <main className="mx-auto max-w-4xl px-6 py-8">{children}</main>
+          <footer className="border-t border-gray-200 bg-white px-6 py-4 mt-auto">
+            <div className="mx-auto flex max-w-4xl items-center justify-center">
+              <a
+                href="https://flows.jetty.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-gray-600"
+              >
+                <img
+                  src="/jetty-pelican.png"
+                  alt="Jetty"
+                  className="h-5 w-5 rounded-full"
+                />
+                Powered by Jetty
+              </a>
+            </div>
+          </footer>
         </Providers>
       </body>
     </html>
