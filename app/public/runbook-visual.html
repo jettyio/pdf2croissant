@@ -353,30 +353,35 @@
 
 <div class="header">
   <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px">
-    <!-- Pelican mascot — inline SVG matching the Jetty brand -->
+    <!-- Jetty pelican logo — matches the official circular icon -->
     <svg width="56" height="56" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-      <rect width="120" height="120" rx="16" fill="#0d0f1e"/>
-      <!-- body -->
-      <ellipse cx="52" cy="72" rx="24" ry="22" fill="white"/>
-      <!-- tail bump -->
-      <circle cx="34" cy="56" r="14" fill="white"/>
+      <!-- circular background -->
+      <circle cx="60" cy="60" r="58" fill="#141638"/>
+      <!-- body — round blob facing right -->
+      <path d="M38 72 C38 58 44 50 56 50 C56 50 62 50 64 56 C66 62 66 78 58 86 C50 92 38 86 38 72Z" fill="white"/>
+      <!-- tail puff — three-lobed cloud at top-left -->
+      <circle cx="40" cy="46" r="11" fill="white"/>
+      <circle cx="50" cy="40" r="10" fill="white"/>
+      <circle cx="44" cy="38" r="9" fill="white"/>
       <!-- neck -->
-      <path d="M58 64 Q62 42 56 32 Q52 26 54 22" stroke="white" stroke-width="0" fill="white"/>
-      <ellipse cx="58" cy="44" rx="8" ry="22" fill="white"/>
-      <!-- head -->
-      <ellipse cx="60" cy="24" rx="9" ry="8" fill="white"/>
-      <!-- beak pouch -->
-      <path d="M68 22 Q92 26 90 32 Q88 38 68 30 Z" fill="#e8a838"/>
+      <path d="M56 52 C58 46 60 40 58 34 C56 28 58 24 60 22" stroke="white" stroke-width="0" fill="white"/>
+      <ellipse cx="58" cy="40" rx="5" ry="14" fill="white"/>
+      <!-- head bump -->
+      <ellipse cx="58" cy="26" rx="6" ry="5" fill="white"/>
+      <!-- beak pouch — large triangular golden shape -->
+      <path d="M62 26 L90 48 L62 42 Z" fill="#e8a838"/>
       <!-- beak top line -->
-      <path d="M68 22 L92 26" stroke="#c4891e" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M62 26 L90 44" stroke="#c78a1e" stroke-width="1.5" stroke-linecap="round"/>
+      <!-- beak seam -->
+      <path d="M62 34 L88 46" stroke="#c78a1e" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
       <!-- eye -->
-      <circle cx="63" cy="22" r="2.2" fill="#0d0f1e"/>
+      <circle cx="59" cy="25" r="2" fill="#141638"/>
       <!-- legs -->
-      <line x1="48" y1="90" x2="48" y2="102" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="56" y1="90" x2="56" y2="102" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="50" y1="86" x2="50" y2="96" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="56" y1="84" x2="56" y2="96" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
       <!-- feet -->
-      <path d="M44 102 L48 102 L52 102" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M52 102 L56 102 L60 102" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M46 96 L50 96 L54 96" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M52 96 L56 96 L60 96" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
     </svg>
     <div>
       <h1>PDF <span class="accent">&rarr;</span> MLCommons Croissant</h1>
