@@ -6,10 +6,12 @@ export const metadata = {
 
 export default function VisualRunbookPage() {
   return (
-    <iframe
-      src="/runbook-visual.html"
-      className="fixed inset-0 h-screen w-screen border-0"
-      title="Visual Runbook Diagram"
-    />
+    <div className="-mx-6 -my-8">
+      <iframe
+        src="/runbook-visual.html"
+        className="h-[calc(100vh-73px)] w-full border-0"
+        title="Visual Runbook Diagram"
+      />
+    </div>
   );
 }
