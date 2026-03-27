@@ -606,42 +606,42 @@
     <div style="display:flex;justify-content:center;overflow-x:auto">
       <pre class="mermaid">
 flowchart TD
-    PDF["PDF Paper"] --> SETUP["Step 1: Environment Setup"]
-    HF["HuggingFace URL<br/><i>optional</i>"] -.-> XREF
-    DN["Dataset Name<br/><i>optional</i>"] -.-> BUILD
+    PDF["PDF Paper"] --> SETUP["Step 1: Setup"]
+    HF["HuggingFace URL"] -.-> XREF
+    DN["Dataset Name"] -.-> BUILD
 
-    SETUP --> ANALYZE["Step 2: Read & Analyze Paper"]
-    ANALYZE --> |"identity, creators,<br/>structure, characteristics"| XREF["Step 3: Cross-Reference"]
-    XREF --> BUILD["Step 4: Build Croissant JSON-LD"]
+    SETUP --> ANALYZE["Step 2: Analyze Paper"]
+    ANALYZE -->|metadata| XREF["Step 3: Cross-Reference"]
+    XREF --> BUILD["Step 4: Build JSON-LD"]
     BUILD --> VALIDATE["Step 5: Validate"]
 
-    VALIDATE --> |"pass"| SUMMARY["Step 7: Write Executive Summary"]
-    VALIDATE --> |"fail"| FIX["Step 6: Fix Errors"]
-    FIX --> |"iteration ≤ 3"| VALIDATE
-    FIX --> |"iteration > 3<br/>document remaining"| SUMMARY
+    VALIDATE -->|pass| SUMMARY["Step 7: Summary"]
+    VALIDATE -->|fail| FIX["Step 6: Fix Errors"]
+    FIX -->|retry max 3| VALIDATE
+    FIX -->|give up| SUMMARY
 
-    SUMMARY --> CHECK["Step 8: Final Checklist"]
-    CHECK --> |"all pass"| OUT_JSON["/app/results/croissant.json"]
-    CHECK --> |"all pass"| OUT_MD["/app/results/summary.md"]
-    CHECK --> |"all pass"| OUT_VAL["/app/results/validation_report.json"]
-    CHECK --> |"fail"| FIX2["Go back & fix"]
+    SUMMARY --> CHECK["Step 8: Checklist"]
+    CHECK -->|pass| OUT1["croissant.json"]
+    CHECK -->|pass| OUT2["summary.md"]
+    CHECK -->|pass| OUT3["validation_report.json"]
+    CHECK -->|fail| FIX2["Go back"]
     FIX2 --> CHECK
 
     style PDF fill:#1a1e3a,stroke:#1ec8dc,stroke-width:2px,color:#e8eaf0
     style HF fill:#1a1e3a,stroke:#e8a838,stroke-width:1px,stroke-dasharray:5 5,color:#7b82a8
     style DN fill:#1a1e3a,stroke:#a78bfa,stroke-width:1px,stroke-dasharray:5 5,color:#7b82a8
-    style SETUP fill:#1a1e3a,stroke:rgba(30,200,220,0.4),color:#e8eaf0
-    style ANALYZE fill:#1a1e3a,stroke:rgba(30,200,220,0.4),color:#e8eaf0
-    style XREF fill:#1f2442,stroke:rgba(232,168,56,0.4),color:#e8eaf0
-    style BUILD fill:#1a1e3a,stroke:rgba(167,139,250,0.4),color:#e8eaf0
-    style VALIDATE fill:#1a1e3a,stroke:rgba(248,113,113,0.4),color:#e8eaf0
-    style FIX fill:#0d0f1e,stroke:rgba(248,113,113,0.4),color:#f87171
-    style SUMMARY fill:#1a1e3a,stroke:rgba(30,200,220,0.4),color:#e8eaf0
-    style CHECK fill:#1a1e3a,stroke:rgba(74,222,128,0.4),color:#e8eaf0
-    style OUT_JSON fill:#0d0f1e,stroke:rgba(30,200,220,0.3),color:#1ec8dc
-    style OUT_MD fill:#0d0f1e,stroke:rgba(74,222,128,0.3),color:#4ade80
-    style OUT_VAL fill:#0d0f1e,stroke:rgba(232,168,56,0.3),color:#e8a838
-    style FIX2 fill:#0d0f1e,stroke:rgba(74,222,128,0.3),color:#4ade80
+    style SETUP fill:#1a1e3a,stroke:#2d5a5e,color:#e8eaf0
+    style ANALYZE fill:#1a1e3a,stroke:#2d5a5e,color:#e8eaf0
+    style XREF fill:#1f2442,stroke:#6b5a2a,color:#e8eaf0
+    style BUILD fill:#1a1e3a,stroke:#4a3580,color:#e8eaf0
+    style VALIDATE fill:#1a1e3a,stroke:#6b3030,color:#e8eaf0
+    style FIX fill:#0d0f1e,stroke:#6b3030,color:#f87171
+    style SUMMARY fill:#1a1e3a,stroke:#2d5a5e,color:#e8eaf0
+    style CHECK fill:#1a1e3a,stroke:#2a6640,color:#e8eaf0
+    style OUT1 fill:#0d0f1e,stroke:#2d5a5e,color:#1ec8dc
+    style OUT2 fill:#0d0f1e,stroke:#2a6640,color:#4ade80
+    style OUT3 fill:#0d0f1e,stroke:#6b5a2a,color:#e8a838
+    style FIX2 fill:#0d0f1e,stroke:#2a6640,color:#4ade80
       </pre>
     </div>
   </div>
