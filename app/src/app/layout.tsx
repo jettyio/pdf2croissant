@@ -41,6 +41,12 @@ export default function RootLayout({
                 >
                   Runbook
                 </Link>
+                <Link
+                  href="/runbook/visual"
+                  className="text-sm text-gray-500 transition-colors hover:text-gray-900"
+                >
+                  Visual
+                </Link>
               </nav>
             </div>
           </header>

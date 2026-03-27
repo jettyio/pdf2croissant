@@ -1,10 +1,19 @@
+import Link from "next/link";
 import { RunbookContent } from "@/components/RunbookContent";
 
 export default function RunbookPage() {
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="mb-2 text-2xl font-bold text-gray-900">Runbook</h1>
+        <div className="mb-2 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">Runbook</h1>
+          <Link
+            href="/runbook/visual"
+            className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-4 py-1.5 text-sm font-medium text-sky-700 transition-colors hover:bg-sky-100"
+          >
+            View visual diagram &rarr;
+          </Link>
+        </div>
         <p className="mb-6 max-w-2xl text-sm leading-relaxed text-gray-500">
           This is the full set of instructions the AI agent follows when
           generating a Croissant file. You can copy it and use it directly with

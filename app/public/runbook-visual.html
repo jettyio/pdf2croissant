@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF → MLCommons Croissant — Agent Runbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a1e3a',
+      primaryTextColor: '#e8eaf0',
+      primaryBorderColor: 'rgba(30,200,220,0.3)',
+      lineColor: '#1ec8dc',
+      secondaryColor: '#1f2442',
+      tertiaryColor: '#0d0f1e',
+      fontFamily: 'Outfit, system-ui, sans-serif',
+      fontSize: '13px',
+      nodeBorder: 'rgba(30,200,220,0.3)',
+      mainBkg: '#1a1e3a',
+      clusterBkg: '#111328',
+      clusterBorder: 'rgba(255,255,255,0.06)',
+      edgeLabelBackground: '#111328',
+      nodeTextColor: '#e8eaf0'
+    },
+    flowchart: { curve: 'basis', padding: 16 }
+  });
+</script>
+<style>
+  :root {
+    --font-body: 'Outfit', system-ui, sans-serif;
+    --font-mono: 'Geist Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #111328;
+    --bg-deep: #0d0f1e;
+    --surface: #1a1e3a;
+    --surface2: #1f2442;
+    --surface-elevated: #222850;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-bright: rgba(255, 255, 255, 0.12);
+    --text: #e8eaf0;
+    --text-dim: #7b82a8;
+
+    --cyan: #1ec8dc;
+    --cyan-dim: rgba(30, 200, 220, 0.10);
+    --cyan-glow: rgba(30, 200, 220, 0.04);
+    --amber: #e8a838;
+    --amber-dim: rgba(232, 168, 56, 0.10);
+    --green: #4ade80;
+    --green-dim: rgba(74, 222, 128, 0.10);
+    --rose: #f87171;
+    --rose-dim: rgba(248, 113, 113, 0.10);
+    --violet: #a78bfa;
+    --violet-dim: rgba(167, 139, 250, 0.10);
+    --white-soft: rgba(255, 255, 255, 0.88);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 25% 0%, var(--cyan-glow) 0%, transparent 50%),
+      radial-gradient(ellipse at 75% 100%, rgba(140, 80, 220, 0.03) 0%, transparent 45%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 48px 40px;
+    min-height: 100vh;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .section, .flow-arrow { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; } }
+
+  /* ---- HEADER ---- */
+  .header { max-width: 1100px; margin: 0 auto 40px; }
+
+  h1 {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -1.2px;
+    margin-bottom: 8px;
+    text-wrap: balance;
+    color: var(--white-soft);
+  }
+  h1 .accent { color: var(--cyan); }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+    font-family: var(--font-mono);
+    font-weight: 400;
+  }
+
+  /* ---- LAYOUT ---- */
+  .diagram { display: grid; grid-template-columns: 1fr; gap: 18px; max-width: 1100px; margin: 0 auto; }
+
+  /* ---- SECTION CARD ---- */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 26px;
+  }
+  .section--hero {
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+    border-color: rgba(30, 200, 220, 0.2);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.03);
+    padding: 28px 32px;
+  }
+  .section--recessed {
+    background: var(--bg-deep);
+    border-color: var(--border);
+  }
+
+  /* Top accent border — Jetty's signature pattern */
+  .section--cyan-top { border-top: 3px solid var(--cyan); }
+  .section--amber-top { border-top: 3px solid var(--amber); }
+  .section--green-top { border-top: 3px solid var(--green); }
+  .section--rose-top { border-top: 3px solid var(--rose); }
+  .section--violet-top { border-top: 3px solid var(--violet); }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .section-label--cyan { color: var(--cyan); }
+  .section-label--cyan .dot { background: var(--cyan); box-shadow: 0 0 6px var(--cyan-dim); }
+  .section-label--amber { color: var(--amber); }
+  .section-label--amber .dot { background: var(--amber); }
+  .section-label--green { color: var(--green); }
+  .section-label--green .dot { background: var(--green); }
+  .section-label--rose { color: var(--rose); }
+  .section-label--rose .dot { background: var(--rose); }
+  .section-label--violet { color: var(--violet); }
+  .section-label--violet .dot { background: var(--violet); }
+
+  /* Pill badge — Jetty's rounded-full style */
+  .step-pill {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    letter-spacing: 0.5px;
+  }
+  .step-pill--cyan { background: var(--cyan-dim); color: var(--cyan); }
+  .step-pill--amber { background: var(--amber-dim); color: var(--amber); }
+  .step-pill--green { background: var(--green-dim); color: var(--green); }
+  .step-pill--rose { background: var(--rose-dim); color: var(--rose); }
+  .step-pill--violet { background: var(--violet-dim); color: var(--violet); }
+
+  /* ---- INNER GRIDS ---- */
+  .inner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .inner-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  .inner-card {
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .inner-card .title { font-weight: 600; font-size: 13px; margin-bottom: 5px; color: var(--white-soft); }
+  .inner-card .desc { color: var(--text-dim); font-size: 12px; line-height: 1.55; }
+  .inner-card code {
+    font-family: var(--font-mono); font-size: 10.5px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 2px 6px; border-radius: 4px;
+  }
+
+  /* ---- FLOW ARROW ---- */
+  .flow-arrow {
+    display: flex; justify-content: center; align-items: center;
+    gap: 8px; color: var(--text-dim);
+    font-family: var(--font-mono); font-size: 11px; padding: 2px 0;
+  }
+  .flow-arrow svg {
+    width: 18px; height: 18px; fill: none;
+    stroke: var(--cyan); stroke-width: 1.5;
+    stroke-linecap: round; stroke-linejoin: round;
+    opacity: 0.5;
+  }
+
+  /* ---- PIPELINE ---- */
+  .pipeline { display: flex; gap: 0; align-items: stretch; overflow-x: auto; padding-bottom: 4px; }
+  .pipeline-step {
+    background: var(--bg-deep); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    min-width: 115px; flex: 1; text-align: center;
+  }
+  .pipeline-step .step-num { font-family: var(--font-mono); font-size: 10px; font-weight: 600; margin-bottom: 4px; }
+  .pipeline-step .step-name { font-size: 12.5px; font-weight: 600; margin-bottom: 3px; color: var(--white-soft); }
+  .pipeline-step .step-detail { font-size: 10.5px; color: var(--text-dim); line-height: 1.4; }
+
+  .pipeline-step--cyan { border-color: rgba(30,200,220,0.15); } .pipeline-step--cyan .step-num { color: var(--cyan); }
+  .pipeline-step--amber { border-color: rgba(232,168,56,0.15); } .pipeline-step--amber .step-num { color: var(--amber); }
+  .pipeline-step--green { border-color: rgba(74,222,128,0.15); } .pipeline-step--green .step-num { color: var(--green); }
+  .pipeline-step--violet { border-color: rgba(167,139,250,0.15); } .pipeline-step--violet .step-num { color: var(--violet); }
+
+  .pipeline-arrow {
+    display: flex; align-items: center; padding: 0 4px;
+    color: var(--cyan); font-size: 14px; flex-shrink: 0; opacity: 0.4;
+  }
+
+  /* ---- SOURCES (input pills) ---- */
+  .sources { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .source {
+    background: var(--bg-deep); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 20px;
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 10px;
+    transition: border-color 0.2s;
+    color: var(--white-soft);
+  }
+  .source:hover { border-color: var(--border-bright); }
+  .source .source-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .source .source-tag {
+    font-size: 10px; font-weight: 500; color: var(--text-dim);
+    display: block; margin-top: 1px;
+  }
+
+  /* ---- THREE COL ---- */
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+  /* ---- NODE LIST ---- */
+  .node-list { list-style: none; font-size: 12.5px; line-height: 1.9; }
+  .node-list li { padding-left: 16px; position: relative; }
+  .node-list li::before { content: ''; width: 5px; height: 5px; border-radius: 50%; position: absolute; left: 0; top: 10px; }
+  .node-list.dots-cyan li::before { background: var(--cyan); }
+  .node-list.dots-amber li::before { background: var(--amber); }
+  .node-list.dots-green li::before { background: var(--green); }
+  .node-list.dots-rose li::before { background: var(--rose); }
+  .node-list code {
+    font-family: var(--font-mono); font-size: 10.5px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 2px 6px; border-radius: 4px;
+  }
+
+  /* ---- OUTPUT FILE ROW ---- */
+  .output-file {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; background: var(--bg-deep);
+    border: 1px solid var(--border); border-radius: 10px;
+  }
+  .output-file .file-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+  .output-file .file-name { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--white-soft); }
+  .output-file .file-desc { font-size: 11px; color: var(--text-dim); }
+
+  /* ---- LOOP INDICATOR ---- */
+  .loop-indicator {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px; background: var(--rose-dim);
+    border: 1px dashed rgba(248,113,113,0.25); border-radius: 10px;
+    font-size: 12px; color: var(--rose);
+    font-family: var(--font-mono); font-weight: 500;
+  }
+  .loop-indicator svg { flex-shrink: 0; }
+
+  /* ---- METADATA CHIPS ---- */
+  .metadata-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .meta-chip {
+    background: var(--bg-deep); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px;
+  }
+  .meta-chip .meta-key {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;
+  }
+  .meta-chip .meta-val { font-weight: 500; font-size: 12.5px; color: var(--white-soft); }
+  .meta-chip code {
+    font-family: var(--font-mono); font-size: 10.5px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* ---- ERROR TABLE ---- */
+  .error-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .error-table th {
+    font-family: var(--font-mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-dim); text-align: left;
+    padding: 8px 12px; border-bottom: 1px solid var(--border-bright);
+  }
+  .error-table td {
+    padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top;
+  }
+  .error-table td code {
+    font-family: var(--font-mono); font-size: 10px;
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .error-table td:first-child code { background: var(--rose-dim); color: var(--rose); }
+  .error-table td:last-child code { background: var(--green-dim); color: var(--green); }
+
+  /* ---- CALLOUT ---- */
+  .callout {
+    background: var(--bg-deep); border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px; font-size: 13px; line-height: 1.6; color: var(--text-dim);
+  }
+  .callout strong { color: var(--white-soft); font-weight: 600; }
+  .callout code {
+    font-family: var(--font-mono); font-size: 10.5px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .callout--green { border-left-color: var(--green); }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 768px) {
+    body { padding: 24px 16px; }
+    h1 { font-size: 28px; }
+    .inner-grid, .inner-grid-3 { grid-template-columns: 1fr; }
+    .three-col { grid-template-columns: 1fr; }
+    .pipeline { flex-wrap: wrap; gap: 6px; }
+    .pipeline-arrow { display: none; }
+    .metadata-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px">
+    <!-- Pelican mascot — inline SVG matching the Jetty brand -->
+    <svg width="56" height="56" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+      <rect width="120" height="120" rx="16" fill="#0d0f1e"/>
+      <!-- body -->
+      <ellipse cx="52" cy="72" rx="24" ry="22" fill="white"/>
+      <!-- tail bump -->
+      <circle cx="34" cy="56" r="14" fill="white"/>
+      <!-- neck -->
+      <path d="M58 64 Q62 42 56 32 Q52 26 54 22" stroke="white" stroke-width="0" fill="white"/>
+      <ellipse cx="58" cy="44" rx="8" ry="22" fill="white"/>
+      <!-- head -->
+      <ellipse cx="60" cy="24" rx="9" ry="8" fill="white"/>
+      <!-- beak pouch -->
+      <path d="M68 22 Q92 26 90 32 Q88 38 68 30 Z" fill="#e8a838"/>
+      <!-- beak top line -->
+      <path d="M68 22 L92 26" stroke="#c4891e" stroke-width="1.5" stroke-linecap="round"/>
+      <!-- eye -->
+      <circle cx="63" cy="22" r="2.2" fill="#0d0f1e"/>
+      <!-- legs -->
+      <line x1="48" y1="90" x2="48" y2="102" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="56" y1="90" x2="56" y2="102" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- feet -->
+      <path d="M44 102 L48 102 L52 102" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M52 102 L56 102 L60 102" stroke="#e8a838" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <h1>PDF <span class="accent">&rarr;</span> MLCommons Croissant</h1>
+      <p class="subtitle">agent runbook &mdash; 8-step pipeline to extract dataset metadata from academic papers</p>
+    </div>
+  </div>
+</div>
+
+<div class="diagram">
+
+  <!-- ===== INPUTS ===== -->
+  <div class="section section--hero" style="--i:0">
+    <div class="section-label section-label--cyan"><span class="dot"></span> Inputs</div>
+    <div class="sources">
+      <div class="source">
+        <div class="source-icon" style="background:var(--cyan-dim);color:var(--cyan)">&#128196;</div>
+        <div>PDF Paper<span class="source-tag">/app/uploads/</span></div>
+      </div>
+      <div class="source" style="opacity:0.55">
+        <div class="source-icon" style="background:var(--amber-dim);color:var(--amber)">&#129303;</div>
+        <div>HuggingFace URL<span class="source-tag">optional</span></div>
+      </div>
+      <div class="source" style="opacity:0.55">
+        <div class="source-icon" style="background:var(--violet-dim);color:var(--violet)">&#127991;</div>
+        <div>Dataset Name<span class="source-tag">optional</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="--i:1">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+    steps 1 &amp; 2
+  </div>
+
+  <!-- ===== SETUP & ANALYZE ===== -->
+  <div class="section section--cyan-top" style="--i:2">
+    <div class="section-label section-label--cyan"><span class="dot"></span> Setup &amp; Analyze Paper <span class="step-pill step-pill--cyan">Steps 1-2</span></div>
+    <div class="inner-grid">
+      <div class="inner-card">
+        <div class="title">Environment</div>
+        <div class="desc"><code>pip install mlcroissant</code><br>Create <code>/app/results/</code>, verify PDF exists</div>
+      </div>
+      <div class="inner-card">
+        <div class="title">Deep Read</div>
+        <div class="desc">Extract all dataset metadata from the paper. Track <strong style="color:var(--amber)">stated vs. inferred</strong> fields throughout.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="--i:3">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+    metadata categories
+  </div>
+
+  <!-- ===== METADATA EXTRACTION ===== -->
+  <div class="section section--cyan-top" style="--i:4">
+    <div class="section-label section-label--cyan"><span class="dot"></span> Metadata Extraction Targets <span class="step-pill step-pill--cyan">Step 2 Detail</span></div>
+    <div class="inner-grid-3">
+      <div class="inner-card">
+        <div class="title">Identity</div>
+        <div class="desc">Name, description, URL, license, citation, version, date</div>
+      </div>
+      <div class="inner-card">
+        <div class="title">Creators</div>
+        <div class="desc">Authors + affiliations, hosting organization</div>
+      </div>
+      <div class="inner-card">
+        <div class="title">Data Structure</div>
+        <div class="desc">Splits, features/fields, file format, record sets</div>
+      </div>
+      <div class="inner-card">
+        <div class="title">Characteristics</div>
+        <div class="desc">Size, language, domain, task type, collection method</div>
+      </div>
+      <div class="inner-card">
+        <div class="title">Additional</div>
+        <div class="desc">Keywords, related papers (arXiv), benchmarks</div>
+      </div>
+      <div class="inner-card" style="border-color:rgba(232,168,56,0.15)">
+        <div class="title" style="color:var(--amber)">Confidence Tracking</div>
+        <div class="desc"><strong style="color:var(--white-soft)">Explicit</strong> (stated in paper) vs. <strong style="color:var(--white-soft)">inferred</strong> &mdash; reported separately</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="--i:5">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+    optional cross-reference
+  </div>
+
+  <!-- ===== CROSS-REFERENCE ===== -->
+  <div class="section section--amber-top section--recessed" style="--i:6">
+    <div class="section-label section-label--amber"><span class="dot"></span> Cross-Reference HuggingFace <span class="step-pill step-pill--amber">Step 3</span></div>
+    <div class="callout" style="border-left-color:var(--amber)">
+      <strong>Paper is the primary source of truth.</strong> HuggingFace only used to confirm splits, identify file formats, fill license gaps, and get canonical URLs. Never blindly copy.
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="--i:7">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+    build JSON-LD
+  </div>
+
+  <!-- ===== BUILD CROISSANT ===== -->
+  <div class="section section--violet-top" style="--i:8">
+    <div class="section-label section-label--violet"><span class="dot"></span> Build Croissant JSON-LD <span class="step-pill step-pill--violet">Step 4</span></div>
+    <div class="metadata-grid">
+      <div class="meta-chip">
+        <div class="meta-key">@context</div>
+        <div class="meta-val">Full Croissant vocab + schema.org</div>
+      </div>
+      <div class="meta-chip">
+        <div class="meta-key">@type</div>
+        <div class="meta-val"><code>sc:Dataset</code></div>
+      </div>
+      <div class="meta-chip">
+        <div class="meta-key">conformsTo</div>
+        <div class="meta-val">Croissant 1.0</div>
+      </div>
+      <div class="meta-chip">
+        <div class="meta-key">distribution</div>
+        <div class="meta-val"><code>cr:FileObject</code> / <code>cr:FileSet</code></div>
+      </div>
+      <div class="meta-chip">
+        <div class="meta-key">recordSet</div>
+        <div class="meta-val">Splits <code>cr:Split</code> + data fields</div>
+      </div>
+      <div class="meta-chip">
+        <div class="meta-key">dataTypes</div>
+        <div class="meta-val"><code>sc:Text</code> <code>sc:Integer</code> <code>sc:Float</code> <code>sc:Boolean</code></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="--i:9">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+    validate
+  </div>
+
+  <!-- ===== VALIDATE & ITERATE ===== -->
+  <div class="section section--rose-top" style="--i:10">
+    <div class="section-label section-label--rose"><span class="dot"></span> Validate &amp; Iterate <span class="step-pill step-pill--rose">Steps 5-6</span></div>
+
+    <div class="pipeline" style="margin-bottom:14px">
+      <div class="pipeline-step pipeline-step--green">
+        <div class="step-num">Stage 1</div>
+        <div class="step-name">JSON Valid</div>
+        <div class="step-detail"><code>json.load()</code></div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step pipeline-step--violet">
+        <div class="step-num">Stage 2</div>
+        <div class="step-name">Schema</div>
+        <div class="step-detail"><code>mlc.Dataset(jsonld=)</code></div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step pipeline-step--cyan">
+        <div class="step-num">Stage 3</div>
+        <div class="step-name">Record Sets</div>
+        <div class="step-detail">Inspect &amp; count</div>
+      </div>
+    </div>
+
+    <div class="loop-indicator">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v2.1h-2.1"/></svg>
+      Fix &amp; re-validate &mdash; up to 3 rounds, then document remaining issues
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="--i:11">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+    common fixes
+  </div>
+
+  <!-- ===== ERROR TABLE ===== -->
+  <div class="section section--recessed" style="--i:12">
+    <div class="section-label section-label--rose"><span class="dot"></span> Common Validation Fixes</div>
+    <table class="error-table">
+      <thead><tr><th>Error</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td><code>Missing @context</code></td><td>Include full <code>@context block</code></td></tr>
+        <tr><td><code>Unknown field</code></td><td>Check spelling vs <code>Croissant vocab</code></td></tr>
+        <tr><td><code>Missing required</code></td><td>Add <code>name / @id / dataType</code></td></tr>
+        <tr><td><code>Invalid @id ref</code></td><td>Ensure unique IDs, use <code>{"@id": "..."}</code></td></tr>
+        <tr><td><code>FileSet no containedIn</code></td><td>Add <code>containedIn</code> reference</td></tr>
+        <tr><td><code>Field no source</code></td><td>Add <code>source</code> with fileSet + extract</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow-arrow" style="--i:13">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+    finalize
+  </div>
+
+  <!-- ===== OUTPUTS ===== -->
+  <div class="section section--green-top" style="--i:14">
+    <div class="section-label section-label--green"><span class="dot"></span> Required Outputs <span class="step-pill step-pill--green">Steps 7-8</span></div>
+    <div class="three-col">
+      <div class="output-file">
+        <div class="file-icon" style="background:var(--cyan-dim);color:var(--cyan)">{}</div>
+        <div>
+          <div class="file-name">croissant.json</div>
+          <div class="file-desc">Croissant JSON-LD metadata</div>
+        </div>
+      </div>
+      <div class="output-file">
+        <div class="file-icon" style="background:var(--green-dim);color:var(--green)">MD</div>
+        <div>
+          <div class="file-name">summary.md</div>
+          <div class="file-desc">Executive summary report</div>
+        </div>
+      </div>
+      <div class="output-file">
+        <div class="file-icon" style="background:var(--amber-dim);color:var(--amber)">V</div>
+        <div>
+          <div class="file-name">validation_report.json</div>
+          <div class="file-desc">Structured validation results</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SUMMARY STRUCTURE ===== -->
+  <div class="section" style="--i:15; border-color: var(--border);">
+    <div class="section-label section-label--cyan"><span class="dot"></span> Executive Summary Structure</div>
+    <div class="inner-grid">
+      <div class="inner-card">
+        <div class="title" style="color:var(--green)">High Confidence</div>
+        <div class="desc">Fields populated directly from paper text with section references</div>
+      </div>
+      <div class="inner-card">
+        <div class="title" style="color:var(--amber)">Medium Confidence</div>
+        <div class="desc">Inferred or approximated fields with rationale documented</div>
+      </div>
+      <div class="inner-card">
+        <div class="title" style="color:var(--rose)">Gaps</div>
+        <div class="desc">Fields not populated &mdash; reasons documented for each</div>
+      </div>
+      <div class="inner-card">
+        <div class="title" style="color:var(--violet)">Recommendations</div>
+        <div class="desc">Limitations, manual review needs, data access suggestions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== WORKFLOW DIAGRAM ===== -->
+  <div class="section section--cyan-top" style="--i:17">
+    <div class="section-label section-label--cyan"><span class="dot"></span> Workflow Diagram</div>
+    <div style="display:flex;justify-content:center;overflow-x:auto">
+      <pre class="mermaid">
+flowchart TD
+    PDF["PDF Paper"] --> SETUP["Step 1: Environment Setup"]
+    HF["HuggingFace URL<br/><i>optional</i>"] -.-> XREF
+    DN["Dataset Name<br/><i>optional</i>"] -.-> BUILD
+
+    SETUP --> ANALYZE["Step 2: Read & Analyze Paper"]
+    ANALYZE --> |"identity, creators,<br/>structure, characteristics"| XREF["Step 3: Cross-Reference"]
+    XREF --> BUILD["Step 4: Build Croissant JSON-LD"]
+    BUILD --> VALIDATE["Step 5: Validate"]
+
+    VALIDATE --> |"pass"| SUMMARY["Step 7: Write Executive Summary"]
+    VALIDATE --> |"fail"| FIX["Step 6: Fix Errors"]
+    FIX --> |"iteration ≤ 3"| VALIDATE
+    FIX --> |"iteration > 3<br/>document remaining"| SUMMARY
+
+    SUMMARY --> CHECK["Step 8: Final Checklist"]
+    CHECK --> |"all pass"| OUT_JSON["/app/results/croissant.json"]
+    CHECK --> |"all pass"| OUT_MD["/app/results/summary.md"]
+    CHECK --> |"all pass"| OUT_VAL["/app/results/validation_report.json"]
+    CHECK --> |"fail"| FIX2["Go back & fix"]
+    FIX2 --> CHECK
+
+    style PDF fill:#1a1e3a,stroke:#1ec8dc,stroke-width:2px,color:#e8eaf0
+    style HF fill:#1a1e3a,stroke:#e8a838,stroke-width:1px,stroke-dasharray:5 5,color:#7b82a8
+    style DN fill:#1a1e3a,stroke:#a78bfa,stroke-width:1px,stroke-dasharray:5 5,color:#7b82a8
+    style SETUP fill:#1a1e3a,stroke:rgba(30,200,220,0.4),color:#e8eaf0
+    style ANALYZE fill:#1a1e3a,stroke:rgba(30,200,220,0.4),color:#e8eaf0
+    style XREF fill:#1f2442,stroke:rgba(232,168,56,0.4),color:#e8eaf0
+    style BUILD fill:#1a1e3a,stroke:rgba(167,139,250,0.4),color:#e8eaf0
+    style VALIDATE fill:#1a1e3a,stroke:rgba(248,113,113,0.4),color:#e8eaf0
+    style FIX fill:#0d0f1e,stroke:rgba(248,113,113,0.4),color:#f87171
+    style SUMMARY fill:#1a1e3a,stroke:rgba(30,200,220,0.4),color:#e8eaf0
+    style CHECK fill:#1a1e3a,stroke:rgba(74,222,128,0.4),color:#e8eaf0
+    style OUT_JSON fill:#0d0f1e,stroke:rgba(30,200,220,0.3),color:#1ec8dc
+    style OUT_MD fill:#0d0f1e,stroke:rgba(74,222,128,0.3),color:#4ade80
+    style OUT_VAL fill:#0d0f1e,stroke:rgba(232,168,56,0.3),color:#e8a838
+    style FIX2 fill:#0d0f1e,stroke:rgba(74,222,128,0.3),color:#4ade80
+      </pre>
+    </div>
+  </div>
+
+  <!-- ===== FINAL CHECKLIST ===== -->
+  <div class="callout callout--green section" style="--i:18">
+    <strong>Final Checklist (mandatory)</strong> &mdash; All 3 files must exist and be non-empty in <code>/app/results/</code>. Verify <code>croissant.json</code> has <code>@context</code> + <code>@type</code> + <code>conformsTo</code> + <code>name</code> + <code>description</code>. Task is <strong>not complete</strong> until every check passes.
+  </div>
+
+  <!-- Attribution -->
+  <div style="--i:19; text-align:center; padding-top:12px; font-size:11px; color:var(--text-dim); font-family:var(--font-mono);">
+    Generated with <a href="https://github.com/anthropics/claude-code" style="color:var(--cyan);text-decoration:none">Claude Code</a> visual-explainer skill
+  </div>
+
+</div>
+
+</body>
+</html>

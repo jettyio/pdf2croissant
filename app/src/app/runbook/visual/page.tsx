@@ -1,0 +1,15 @@
+export const metadata = {
+  title: "Visual Runbook — PDF to Croissant",
+  description:
+    "Visual diagram of the 8-step agent pipeline for generating MLCommons Croissant metadata from academic papers",
+};
+
+export default function VisualRunbookPage() {
+  return (
+    <iframe
+      src="/runbook-visual.html"
+      className="fixed inset-0 h-screen w-screen border-0"
+      title="Visual Runbook Diagram"
+    />
+  );
+}
