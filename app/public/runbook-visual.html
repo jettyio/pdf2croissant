@@ -13,22 +13,22 @@
     startOnLoad: true,
     theme: 'dark',
     themeVariables: {
-      primaryColor: '#1a1e3a',
+      primaryColor: '#252a4a',
       primaryTextColor: '#e8eaf0',
-      primaryBorderColor: 'rgba(30,200,220,0.3)',
+      primaryBorderColor: '#3a4070',
       lineColor: '#1ec8dc',
-      secondaryColor: '#1f2442',
-      tertiaryColor: '#0d0f1e',
+      secondaryColor: '#2a3050',
+      tertiaryColor: '#1a1f3a',
       fontFamily: 'Outfit, system-ui, sans-serif',
-      fontSize: '13px',
-      nodeBorder: 'rgba(30,200,220,0.3)',
-      mainBkg: '#1a1e3a',
-      clusterBkg: '#111328',
-      clusterBorder: 'rgba(255,255,255,0.06)',
-      edgeLabelBackground: '#111328',
+      fontSize: '14px',
+      nodeBorder: '#3a4070',
+      mainBkg: '#252a4a',
+      clusterBkg: '#1c2040',
+      clusterBorder: '#2a3050',
+      edgeLabelBackground: '#1c2040',
       nodeTextColor: '#e8eaf0'
     },
-    flowchart: { curve: 'basis', padding: 16 }
+    flowchart: { curve: 'basis', padding: 20, nodeSpacing: 30, rankSpacing: 50 }
   });
 </script>
 <style>
@@ -36,15 +36,15 @@
     --font-body: 'Outfit', system-ui, sans-serif;
     --font-mono: 'Geist Mono', 'SF Mono', Consolas, monospace;
 
-    --bg: #111328;
-    --bg-deep: #0d0f1e;
-    --surface: #1a1e3a;
-    --surface2: #1f2442;
-    --surface-elevated: #222850;
-    --border: rgba(255, 255, 255, 0.06);
-    --border-bright: rgba(255, 255, 255, 0.12);
-    --text: #e8eaf0;
-    --text-dim: #7b82a8;
+    --bg: #171b35;
+    --bg-deep: #131730;
+    --surface: #212545;
+    --surface2: #272c50;
+    --surface-elevated: #2c325a;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-bright: rgba(255, 255, 255, 0.15);
+    --text: #eceef4;
+    --text-dim: #8f96be;
 
     --cyan: #1ec8dc;
     --cyan-dim: rgba(30, 200, 220, 0.10);
@@ -364,8 +364,51 @@
 
 <div class="diagram">
 
+  <!-- ===== WORKFLOW DIAGRAM (hero position) ===== -->
+  <div class="section section--hero" style="--i:0; max-width:none; padding:28px 20px">
+    <div class="section-label section-label--cyan"><span class="dot"></span> Workflow Overview</div>
+    <div style="overflow-x:auto">
+      <pre class="mermaid" style="min-width:900px">
+flowchart LR
+    PDF["PDF Paper"] --> SETUP["1. Setup"]
+    HF["HuggingFace URL"] -.-> XREF
+    DN["Dataset Name"] -.-> BUILD
+
+    SETUP --> ANALYZE["2. Analyze Paper"]
+    ANALYZE -->|metadata| XREF["3. Cross-Reference"]
+    XREF --> BUILD["4. Build JSON-LD"]
+    BUILD --> VALIDATE["5. Validate"]
+
+    VALIDATE -->|pass| SUMMARY["7. Summary"]
+    VALIDATE -->|fail| FIX["6. Fix Errors"]
+    FIX -->|retry| VALIDATE
+    FIX -->|max 3| SUMMARY
+
+    SUMMARY --> CHECK["8. Checklist"]
+    CHECK -->|pass| OUT1["croissant.json"]
+    CHECK -->|pass| OUT2["summary.md"]
+    CHECK -->|pass| OUT3["validation_report.json"]
+
+    style PDF fill:#252a4a,stroke:#1ec8dc,stroke-width:2px,color:#eceef4
+    style HF fill:#252a4a,stroke:#e8a838,stroke-width:1px,stroke-dasharray:5 5,color:#8f96be
+    style DN fill:#252a4a,stroke:#a78bfa,stroke-width:1px,stroke-dasharray:5 5,color:#8f96be
+    style SETUP fill:#252a4a,stroke:#358088,color:#eceef4
+    style ANALYZE fill:#252a4a,stroke:#358088,color:#eceef4
+    style XREF fill:#272c50,stroke:#8a7030,color:#eceef4
+    style BUILD fill:#252a4a,stroke:#5a42a0,color:#eceef4
+    style VALIDATE fill:#252a4a,stroke:#803838,color:#eceef4
+    style FIX fill:#1a1f3a,stroke:#803838,color:#f87171
+    style SUMMARY fill:#252a4a,stroke:#358088,color:#eceef4
+    style CHECK fill:#252a4a,stroke:#358050,color:#eceef4
+    style OUT1 fill:#1a1f3a,stroke:#358088,color:#1ec8dc
+    style OUT2 fill:#1a1f3a,stroke:#358050,color:#4ade80
+    style OUT3 fill:#1a1f3a,stroke:#8a7030,color:#e8a838
+      </pre>
+    </div>
+  </div>
+
   <!-- ===== INPUTS ===== -->
-  <div class="section section--hero" style="--i:0">
+  <div class="section section--hero" style="--i:1">
     <div class="section-label section-label--cyan"><span class="dot"></span> Inputs</div>
     <div class="sources">
       <div class="source">
@@ -597,52 +640,6 @@
         <div class="title" style="color:var(--violet)">Recommendations</div>
         <div class="desc">Limitations, manual review needs, data access suggestions</div>
       </div>
-    </div>
-  </div>
-
-  <!-- ===== WORKFLOW DIAGRAM ===== -->
-  <div class="section section--cyan-top" style="--i:17">
-    <div class="section-label section-label--cyan"><span class="dot"></span> Workflow Diagram</div>
-    <div style="display:flex;justify-content:center;overflow-x:auto">
-      <pre class="mermaid">
-flowchart TD
-    PDF["PDF Paper"] --> SETUP["Step 1: Setup"]
-    HF["HuggingFace URL"] -.-> XREF
-    DN["Dataset Name"] -.-> BUILD
-
-    SETUP --> ANALYZE["Step 2: Analyze Paper"]
-    ANALYZE -->|metadata| XREF["Step 3: Cross-Reference"]
-    XREF --> BUILD["Step 4: Build JSON-LD"]
-    BUILD --> VALIDATE["Step 5: Validate"]
-
-    VALIDATE -->|pass| SUMMARY["Step 7: Summary"]
-    VALIDATE -->|fail| FIX["Step 6: Fix Errors"]
-    FIX -->|retry max 3| VALIDATE
-    FIX -->|give up| SUMMARY
-
-    SUMMARY --> CHECK["Step 8: Checklist"]
-    CHECK -->|pass| OUT1["croissant.json"]
-    CHECK -->|pass| OUT2["summary.md"]
-    CHECK -->|pass| OUT3["validation_report.json"]
-    CHECK -->|fail| FIX2["Go back"]
-    FIX2 --> CHECK
-
-    style PDF fill:#1a1e3a,stroke:#1ec8dc,stroke-width:2px,color:#e8eaf0
-    style HF fill:#1a1e3a,stroke:#e8a838,stroke-width:1px,stroke-dasharray:5 5,color:#7b82a8
-    style DN fill:#1a1e3a,stroke:#a78bfa,stroke-width:1px,stroke-dasharray:5 5,color:#7b82a8
-    style SETUP fill:#1a1e3a,stroke:#2d5a5e,color:#e8eaf0
-    style ANALYZE fill:#1a1e3a,stroke:#2d5a5e,color:#e8eaf0
-    style XREF fill:#1f2442,stroke:#6b5a2a,color:#e8eaf0
-    style BUILD fill:#1a1e3a,stroke:#4a3580,color:#e8eaf0
-    style VALIDATE fill:#1a1e3a,stroke:#6b3030,color:#e8eaf0
-    style FIX fill:#0d0f1e,stroke:#6b3030,color:#f87171
-    style SUMMARY fill:#1a1e3a,stroke:#2d5a5e,color:#e8eaf0
-    style CHECK fill:#1a1e3a,stroke:#2a6640,color:#e8eaf0
-    style OUT1 fill:#0d0f1e,stroke:#2d5a5e,color:#1ec8dc
-    style OUT2 fill:#0d0f1e,stroke:#2a6640,color:#4ade80
-    style OUT3 fill:#0d0f1e,stroke:#6b5a2a,color:#e8a838
-    style FIX2 fill:#0d0f1e,stroke:#2a6640,color:#4ade80
-      </pre>
     </div>
   </div>
 
