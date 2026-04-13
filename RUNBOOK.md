@@ -415,8 +415,8 @@ for f in "$RESULTS_DIR/croissant.json" "$RESULTS_DIR/summary.md" "$RESULTS_DIR/v
 done
 
 # Verify JSON files parse correctly
-python3 -c "import json; json.load(open('$RESULTS_DIR/croissant.json'))" && echo "PASS: croissant.json is valid JSON" || echo "FAIL: croissant.json is not valid JSON"
-python3 -c "import json; d=json.load(open('$RESULTS_DIR/validation_report.json')); assert 'overall_passed' in d" && echo "PASS: validation_report.json has overall_passed" || echo "FAIL: validation_report.json missing overall_passed"
+python3 -c "import json; json.load(open(\"$RESULTS_DIR/croissant.json\"))" && echo "PASS: croissant.json is valid JSON" || echo "FAIL: croissant.json is not valid JSON"
+python3 -c "import json; d=json.load(open(\"$RESULTS_DIR/validation_report.json\")); assert \"overall_passed\" in d" && echo "PASS: validation_report.json has overall_passed" || echo "FAIL: validation_report.json missing overall_passed"
 ```
 
 ### Checklist
