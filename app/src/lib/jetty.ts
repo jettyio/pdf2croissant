@@ -106,6 +106,11 @@ export async function launchRun(params: {
       snapshot: "python312-uv",
       timeout_sec: 600,
       timeout_hint: 5,
+      template_variables: {
+        pdf_filename: params.pdfFilename,
+        dataset_name: params.datasetName || "",
+        huggingface_url: params.huggingfaceUrl || "",
+      },
       ...(params.filePaths.length > 0
         ? { file_paths: params.filePaths }
         : {}),
