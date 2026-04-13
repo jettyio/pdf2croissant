@@ -77,6 +77,7 @@ export async function requestPresignedUrl(
 export async function launchRun(params: {
   filePaths: string[];
   pdfFilename: string;
+  email: string;
   datasetName?: string;
   huggingfaceUrl?: string;
   model?: string;
@@ -91,6 +92,9 @@ export async function launchRun(params: {
   ]
     .filter(Boolean)
     .join("\n");
+
+  const webhookUrl = process.env.WEBHOOK_URL || "https://mlcroissant.jetty.bot/api/webhook/run-complete";
+  const webhookSecret = process.env.WEBHOOK_SECRET || "";
 
   const body = {
     model: params.model || "gemini-3-pro-preview",
@@ -110,9 +114,16 @@ export async function launchRun(params: {
         pdf_filename: params.pdfFilename,
         dataset_name: params.datasetName || "",
         huggingface_url: params.huggingfaceUrl || "",
+        email: params.email,
       },
+      labels: [
+        { key: "email", value: params.email },
+      ],
       ...(params.filePaths.length > 0
         ? { file_paths: params.filePaths }
+        : {}),
+      ...(webhookSecret
+        ? { webhook_url: webhookUrl, webhook_secret: webhookSecret }
         : {}),
     },
   };

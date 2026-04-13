@@ -21,6 +21,7 @@ export function UploadForm() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [email, setEmail] = useState("");
   const [datasetName, setDatasetName] = useState("");
   const [huggingfaceUrl, setHuggingfaceUrl] = useState("");
   const [model, setModel] = useState("gemini-3-pro-preview");
@@ -106,6 +107,7 @@ export function UploadForm() {
       const formData = new FormData();
       formData.append("storage_path", storage_path);
       formData.append("pdf_filename", file.name);
+      formData.append("email", email.trim());
       if (datasetName.trim()) formData.append("dataset_name", datasetName.trim());
       if (huggingfaceUrl.trim()) formData.append("huggingface_url", huggingfaceUrl.trim());
       formData.append("model", model);
@@ -130,6 +132,7 @@ export function UploadForm() {
       // Reset form and show success inline
       const fileName = file.name;
       setFile(null);
+      setEmail("");
       setDatasetName("");
       setHuggingfaceUrl("");
       setSuccess({ id: data.trajectory_id, name: fileName });
@@ -223,6 +226,24 @@ export function UploadForm() {
         />
       </div>
 
+      {/* Email (required) */}
+      <div>
+        <label className="mb-1 block text-xs font-medium text-gray-500">
+          Email address <span className="text-red-400">*</span>
+        </label>
+        <input
+          type="email"
+          required
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          You&apos;ll be notified when the job completes.
+        </p>
+      </div>
+
       {/* Optional fields */}
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -301,7 +322,7 @@ export function UploadForm() {
 
       <button
         type="submit"
-        disabled={!file || loading}
+        disabled={!file || !email.trim() || loading}
         className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
       >
         {loading ? (

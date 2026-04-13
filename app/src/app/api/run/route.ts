@@ -32,10 +32,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const email = formData.get("email") as string | null;
+    if (!email?.trim()) {
+      return NextResponse.json(
+        { error: "Email address is required" },
+        { status: 400 }
+      );
+    }
+
     // Launch the workflow
     const run = await launchRun({
       filePaths,
       pdfFilename,
+      email: email.trim(),
       datasetName: (formData.get("dataset_name") as string) || undefined,
       huggingfaceUrl: (formData.get("huggingface_url") as string) || undefined,
       model: (formData.get("model") as string) || undefined,
