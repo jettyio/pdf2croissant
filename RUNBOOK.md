@@ -1,37 +1,50 @@
-# PDF → MLCommons Croissant — Agent Runbook
+---
+version: "1.0.0"
+evaluation: programmatic
+agent: gemini-cli
+model: gemini-3-pro-preview
+snapshot: python312-uv
+---
+
+# PDF to MLCommons Croissant — Agent Runbook
 
 ## Objective
 
-You are given an academic paper (PDF) that introduces or describes a machine learning dataset. Your job is to:
-
-1. Read and deeply understand the paper
-2. Extract all dataset metadata described in the paper
-3. Produce a valid MLCommons Croissant JSON-LD file
-4. Validate the file using the `mlcroissant` Python library
-5. Iterate to fix any validation errors (up to 3 rounds)
-6. Write an executive summary documenting what was extracted, inferred, and what gaps remain
+You are given an academic paper (PDF) that introduces or describes a machine learning dataset. Your job is to read and deeply understand the paper, extract all dataset metadata, produce a valid MLCommons Croissant JSON-LD file, validate it using the `mlcroissant` Python library, iterate to fix validation errors, and write an executive summary documenting what was extracted, inferred, and what gaps remain.
 
 ---
 
 ## REQUIRED OUTPUT FILES (MANDATORY)
 
-**You MUST write all three of the following files to `/app/results/`. The task is NOT complete until every file exists and is non-empty. No exceptions.**
+**You MUST write all of the following files to `{{results_dir}}`.
+The task is NOT complete until every file exists and is non-empty. No exceptions.**
 
 | File | Description |
 |------|-------------|
-| `/app/results/croissant.json` | The generated Croissant JSON-LD metadata file |
-| `/app/results/summary.md` | Executive summary (markdown) |
-| `/app/results/validation_report.json` | Structured validation results |
+| `{{results_dir}}/croissant.json` | The generated Croissant JSON-LD metadata file |
+| `{{results_dir}}/summary.md` | Executive summary with extraction details, validation results, and recommendations |
+| `{{results_dir}}/validation_report.json` | Structured validation results with stages, results, and overall_passed |
 
-If you finish your analysis but have not written all three files, go back and write them before stopping.
+If you finish your analysis but have not written all files, go back and write them before stopping.
 
 ---
 
 ## Parameters
 
-- `{{pdf_filename}}` — The uploaded PDF file (available at `/app/uploads/{{pdf_filename}}`)
-- `{{huggingface_url}}` — Optional HuggingFace dataset URL for cross-referencing (may be empty)
-- `{{dataset_name}}` — Optional dataset name override (may be empty)
+| Parameter | Template Variable | Default | Description |
+|-----------|------------------|---------|-------------|
+| Results directory | `{{results_dir}}` | `/app/results` (Jetty) / `./results` (local) | Output directory for all results |
+| PDF filename | `{{pdf_filename}}` | — | The uploaded PDF file (available at `/app/uploads/{{pdf_filename}}`) |
+| HuggingFace URL | `{{huggingface_url}}` | (empty) | Optional HuggingFace dataset URL for cross-referencing |
+| Dataset name | `{{dataset_name}}` | (empty) | Optional dataset name override |
+
+---
+
+## Dependencies
+
+| Dependency | Type | Required | Description |
+|------------|------|----------|-------------|
+| mlcroissant | Python package | Yes | Validates Croissant JSON-LD against the MLCommons schema |
 
 ---
 
@@ -42,11 +55,13 @@ If you finish your analysis but have not written all three files, go back and wr
 pip install mlcroissant
 
 # Create output directories
-mkdir -p /app/results
+mkdir -p {{results_dir}}
 
 # Verify the PDF exists
 ls -la /app/uploads/{{pdf_filename}}
 ```
+
+Verify all required inputs are available before proceeding.
 
 ---
 
@@ -223,9 +238,9 @@ Each field needs:
 
 ---
 
-## Step 5: Validate
+## Step 5: Evaluate Outputs
 
-Write the JSON to `/app/results/croissant.json`, then validate:
+Write the JSON to `{{results_dir}}/croissant.json`, then validate:
 
 ```python
 #!/usr/bin/env python3
@@ -233,16 +248,16 @@ import json
 import mlcroissant as mlc
 
 # Stage 1: JSON validity
-with open("/app/results/croissant.json") as f:
+with open("{{results_dir}}/croissant.json") as f:
     data = json.load(f)
-print("✓ JSON is valid")
+print("JSON is valid")
 
 # Stage 2: Croissant schema validation
 try:
     dataset = mlc.Dataset(jsonld=data)
-    print("✓ Croissant schema validation passed")
+    print("Croissant schema validation passed")
 except mlc.ValidationError as e:
-    print(f"✗ Croissant validation failed: {e}")
+    print(f"Croissant validation failed: {e}")
     # FIX THE ERRORS — see Step 6
 
 # Stage 3: Record set inspection (informational)
@@ -253,28 +268,32 @@ except Exception as e:
     print(f"  Record set inspection note: {e}")
 ```
 
-Save structured results to `/app/results/validation_report.json`:
+For each validation stage, assign an evaluation status:
 
-```json
-{
-  "stages": [
-    { "name": "json_validity", "passed": true, "message": "Valid JSON" },
-    { "name": "croissant_schema", "passed": true, "message": "Schema validation passed" },
-    { "name": "record_sets", "passed": true, "message": "3 record sets found" }
-  ],
-  "overall_passed": true,
-  "iterations": 1
-}
-```
+| Status | Criteria |
+|--------|----------|
+| `PASS` | JSON is valid, Croissant schema validates without errors, record sets are inspectable |
+| `PARTIAL` | JSON is valid and schema validates but record set inspection has warnings |
+| `FAIL` | JSON is invalid or Croissant schema validation fails |
 
 ---
 
-## Step 6: Iterate on Errors (up to 3 rounds)
+## Step 6: Iterate on Errors (max 3 rounds)
 
-If validation fails, read the error message carefully and fix the issue. Common problems:
+If any validation stage received `FAIL` or `PARTIAL` status:
 
-| Error Pattern | Fix |
-|--------------|-----|
+1. Read the specific error message or failure reason
+2. Apply the targeted fix from the Common Fixes table below
+3. Re-run the failed item through Step 4
+4. Re-evaluate with Step 5 criteria
+5. Repeat up to 3 times total
+
+After 3 rounds, keep the best result and flag remaining failures in the summary.
+
+### Common Fixes
+
+| Issue | Fix |
+|-------|-----|
 | `Missing @context` | Ensure the full `@context` block is present |
 | `Unknown field` | Check field name spelling against the Croissant vocabulary |
 | `Missing required property` | Add the missing property (often `name`, `@id`, or `dataType`) |
@@ -283,33 +302,27 @@ If validation fails, read the error message carefully and fix the issue. Common 
 | `FileSet without containedIn` | Add `"containedIn": {"@id": "parent_file_object_id"}` |
 | `Field without source` | Each non-split field needs a `source` with `fileSet` and `extract` |
 
-After each fix:
-1. Overwrite `/app/results/croissant.json`
-2. Re-run the validation script
-3. Update `/app/results/validation_report.json` with the new iteration count
-
-Stop after 3 iterations even if errors remain — document remaining issues in the summary.
-
 ---
 
 ## Step 7: Write Executive Summary
 
-Write `/app/results/summary.md` with the following structure:
+Write `{{results_dir}}/summary.md` with the following structure:
 
 ```markdown
 # Croissant Metadata Report: {Dataset Name}
 
-## Source
+## Overview
+- **Date**: {run date}
 - **Paper**: {paper title}
 - **PDF**: {{pdf_filename}}
 - **HuggingFace**: {{huggingface_url}} (if provided)
 
-## Extraction Summary
+## Results Summary
 
 ### Fields Populated from Paper (high confidence)
 | Field | Value | Source |
 |-------|-------|--------|
-| name | ... | Paper §1 |
+| name | ... | Paper section 1 |
 | description | ... | Paper abstract |
 | ... | ... | ... |
 
@@ -324,9 +337,9 @@ Write `/app/results/summary.md` with the following structure:
 | ... | Not mentioned in paper |
 
 ## Validation Results
-- **JSON**: ✓/✗
-- **Croissant Schema**: ✓/✗
-- **Record Sets**: ✓/✗ ({N} found)
+- **JSON**: PASS/FAIL
+- **Croissant Schema**: PASS/FAIL
+- **Record Sets**: PASS/FAIL ({N} found)
 - **Iterations Required**: {N}
 - **Remaining Errors**: {description or "None"}
 
@@ -335,38 +348,83 @@ Write `/app/results/summary.md` with the following structure:
 - **Fields**: {list fields with types}
 - **Record Sets**: {count and names}
 
-## Limitations & Recommendations
-- {Bullet points about what could not be determined from the paper alone}
+## Recommendations
+- {What could not be determined from the paper alone}
 - {Suggestions for improving the metadata with access to the actual data files}
 - {Notes about fields that may need manual review}
+
+## Limitations
+- {Caveats about extraction quality}
+- {Fields that may need manual verification}
 ```
 
 ---
 
-## Step 8: Final Checklist (MANDATORY — do not skip)
+## Step 8: Write Validation Report
 
-You MUST complete every item on this checklist before finishing. Run the verification script, then confirm each item.
+Write `{{results_dir}}/validation_report.json`:
 
-### Verification script
+```json
+{
+  "version": "1.0.0",
+  "run_date": "2026-01-01T00:00:00Z",
+  "parameters": {
+    "pdf_filename": "{{pdf_filename}}",
+    "huggingface_url": "{{huggingface_url}}",
+    "dataset_name": "{{dataset_name}}"
+  },
+  "stages": [
+    { "name": "setup", "passed": true, "message": "Environment ready" },
+    { "name": "paper_analysis", "passed": true, "message": "Paper read and metadata extracted" },
+    { "name": "croissant_generation", "passed": true, "message": "Croissant JSON-LD generated" },
+    { "name": "json_validity", "passed": true, "message": "Valid JSON" },
+    { "name": "croissant_schema", "passed": true, "message": "Schema validation passed" },
+    { "name": "record_sets", "passed": true, "message": "N record sets found" },
+    { "name": "report_generation", "passed": true, "message": "All output files written" }
+  ],
+  "results": {
+    "pass": 0,
+    "partial": 0,
+    "fail": 0
+  },
+  "overall_passed": true,
+  "iterations": 1,
+  "output_files": [
+    "{{results_dir}}/croissant.json",
+    "{{results_dir}}/summary.md",
+    "{{results_dir}}/validation_report.json"
+  ]
+}
+```
+
+---
+
+## Step 9: Final Checklist (MANDATORY — do not skip)
+
+### Verification Script
 
 ```bash
-# Run this BEFORE declaring the task complete
 echo "=== FINAL OUTPUT VERIFICATION ==="
-for f in /app/results/croissant.json /app/results/summary.md /app/results/validation_report.json; do
+RESULTS_DIR="{{results_dir}}"
+for f in "$RESULTS_DIR/croissant.json" "$RESULTS_DIR/summary.md" "$RESULTS_DIR/validation_report.json"; do
   if [ ! -s "$f" ]; then
     echo "FAIL: $f is missing or empty"
   else
     echo "PASS: $f ($(wc -c < "$f") bytes)"
   fi
 done
+
+# Verify JSON files parse correctly
+python3 -c "import json; json.load(open('$RESULTS_DIR/croissant.json'))" && echo "PASS: croissant.json is valid JSON" || echo "FAIL: croissant.json is not valid JSON"
+python3 -c "import json; d=json.load(open('$RESULTS_DIR/validation_report.json')); assert 'overall_passed' in d" && echo "PASS: validation_report.json has overall_passed" || echo "FAIL: validation_report.json missing overall_passed"
 ```
 
 ### Checklist
 
-- [ ] `/app/results/croissant.json` exists, is non-empty, and contains valid JSON-LD with at least `@context`, `@type`, `conformsTo`, `name`, and `description`
-- [ ] `/app/results/validation_report.json` exists, is non-empty, and contains a JSON object with `stages` array and `overall_passed` boolean
-- [ ] `/app/results/summary.md` exists, is non-empty, and follows the executive summary template from Step 7
-- [ ] The verification script above printed PASS for all three files
+- [ ] `croissant.json` exists, is non-empty, and contains valid JSON-LD with at least `@context`, `@type`, `conformsTo`, `name`, and `description`
+- [ ] `validation_report.json` exists, is non-empty, and contains a JSON object with `stages` array and `overall_passed` boolean
+- [ ] `summary.md` exists, is non-empty, and follows the executive summary template from Step 7
+- [ ] Verification script printed PASS for all files
 
 **If ANY item fails, go back and fix it. Do NOT finish until all items pass.**
 

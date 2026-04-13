@@ -23,7 +23,7 @@ export function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
   const [datasetName, setDatasetName] = useState("");
   const [huggingfaceUrl, setHuggingfaceUrl] = useState("");
-  const [model, setModel] = useState("claude-opus-4-6");
+  const [model, setModel] = useState("gemini-3-pro-preview");
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState<UploadStage>("idle");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -258,8 +258,6 @@ export function UploadForm() {
         </label>
         <div className="flex gap-2">
           {[
-            { id: "claude-opus-4-6", label: "Claude Opus", sub: "Claude Code" },
-            { id: "claude-sonnet-4-6", label: "Claude Sonnet", sub: "Claude Code" },
             { id: "gemini-3-pro-preview", label: "Gemini Pro", sub: "Gemini CLI" },
           ].map((opt) => (
             <button

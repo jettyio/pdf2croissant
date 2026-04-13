@@ -93,7 +93,7 @@ export async function launchRun(params: {
     .join("\n");
 
   const body = {
-    model: params.model || "gemini-3.1-pro-preview",
+    model: params.model || "gemini-3-pro-preview",
     messages: [
       { role: "system", content: runbook },
       { role: "user", content: userParts },

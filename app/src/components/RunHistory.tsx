@@ -40,8 +40,6 @@ const statusConfig = {
 } as const;
 
 const MODEL_SHORT: Record<string, string> = {
-  "claude-opus-4-6": "Opus",
-  "claude-sonnet-4-6": "Sonnet",
   "gemini-3-pro-preview": "Gemini",
 };
 
