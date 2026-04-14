@@ -1,5 +1,4 @@
 import { UploadForm } from "@/components/UploadForm";
-import { RunHistory } from "@/components/RunHistory";
 import {
   FileJson2,
   ShieldCheck,
@@ -56,14 +55,6 @@ export default function Home() {
         </div>
 
         <UploadForm />
-      </section>
-
-      {/* Recent runs */}
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
-          Recent runs
-        </h2>
-        <RunHistory />
       </section>
     </div>
   );

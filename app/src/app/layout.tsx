@@ -53,7 +53,7 @@ export default function RootLayout({
           </header>
           <main className="mx-auto max-w-4xl px-6 py-8">{children}</main>
           <footer className="border-t border-gray-200 bg-white px-6 py-4 mt-auto">
-            <div className="mx-auto flex max-w-4xl items-center justify-center">
+            <div className="mx-auto flex max-w-4xl items-center justify-center gap-4">
               <a
                 href="https://flows.jetty.io"
                 target="_blank"
@@ -66,6 +66,15 @@ export default function RootLayout({
                   className="h-5 w-5 rounded-full"
                 />
                 Powered by Jetty
+              </a>
+              <span className="text-gray-200">|</span>
+              <a
+                href="https://github.com/jettyio/pdf2croissant"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-gray-400 transition-colors hover:text-gray-600"
+              >
+                GitHub
               </a>
             </div>
           </footer>

@@ -24,7 +24,6 @@ export function UploadForm() {
   const [email, setEmail] = useState("");
   const [datasetName, setDatasetName] = useState("");
   const [huggingfaceUrl, setHuggingfaceUrl] = useState("");
-  const [model, setModel] = useState("gemini-3-pro-preview");
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState<UploadStage>("idle");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -110,7 +109,6 @@ export function UploadForm() {
       formData.append("email", email.trim());
       if (datasetName.trim()) formData.append("dataset_name", datasetName.trim());
       if (huggingfaceUrl.trim()) formData.append("huggingface_url", huggingfaceUrl.trim());
-      formData.append("model", model);
 
       const runRes = await fetch("/api/run", {
         method: "POST",
@@ -269,32 +267,6 @@ export function UploadForm() {
             onChange={(e) => setHuggingfaceUrl(e.target.value)}
             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
           />
-        </div>
-      </div>
-
-      {/* Model selector */}
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-500">
-          Agent
-        </label>
-        <div className="flex gap-2">
-          {[
-            { id: "gemini-3-pro-preview", label: "Gemini Pro", sub: "Gemini CLI" },
-          ].map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setModel(opt.id)}
-              className={`flex-1 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
-                model === opt.id
-                  ? "border-sky-400 bg-sky-50 text-sky-700 ring-1 ring-sky-400"
-                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              <span className="font-medium">{opt.label}</span>
-              <span className="ml-1 text-xs text-gray-400">{opt.sub}</span>
-            </button>
-          ))}
         </div>
       </div>
 
