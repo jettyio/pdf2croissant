@@ -122,7 +122,7 @@ function bufferToHex(buffer: ArrayBuffer): string {
 }
 
 // ---------------------------------------------------------------------------
-// SendGrid email via v3 REST API (no SDK needed — Edge-compatible)
+// Resend email via REST API (no SDK needed — Edge-compatible)
 // ---------------------------------------------------------------------------
 
 async function sendEmail(params: {
@@ -132,12 +132,11 @@ async function sendEmail(params: {
   displayName: string;
   succeeded: boolean;
 }) {
-  const apiKey = process.env.SENDGRID_API_KEY;
-  if (!apiKey) throw new Error("SENDGRID_API_KEY is not configured");
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_API_KEY is not configured");
 
-  const fromEmail =
-    process.env.SENDGRID_FROM_EMAIL ?? "notifications@jetty.bot";
-  const fromName = process.env.SENDGRID_FROM_NAME ?? "Croissant Generator";
+  const fromAddress =
+    process.env.RESEND_FROM ?? "Croissant Generator <notifications@jetty.bot>";
 
   const html = params.succeeded
     ? successEmailHtml(params.displayName, params.runUrl)
@@ -147,26 +146,24 @@ async function sendEmail(params: {
     ? successEmailText(params.displayName, params.runUrl)
     : failureEmailText(params.displayName, params.runUrl);
 
-  const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+  const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      personalizations: [{ to: [{ email: params.to }] }],
-      from: { email: fromEmail, name: fromName },
+      from: fromAddress,
+      to: [params.to],
       subject: params.subject,
-      content: [
-        { type: "text/plain", value: plain },
-        { type: "text/html", value: html },
-      ],
+      html,
+      text: plain,
     }),
   });
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`SendGrid API error: ${res.status} ${text}`);
+    throw new Error(`Resend API error: ${res.status} ${text}`);
   }
 }
 
