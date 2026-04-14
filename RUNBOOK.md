@@ -95,6 +95,27 @@ Read the PDF thoroughly. Extract the following information where available:
 - **Task type** — classification, QA, summarization, generation, etc.
 - **Collection method** — crowdsourced, scraped, synthetic, etc.
 
+### Responsible AI (RAI) Metadata
+- **Data collection method** — how the data was gathered (surveys, web scraping, crowdsourcing, experiments, etc.)
+- **Collection timeframe** — when data was collected (start/end dates)
+- **Missing data** — known gaps or missing values in the dataset
+- **Raw data sources** — original data sources before processing
+- **Preprocessing** — steps taken to clean or prepare the data
+- **Imputation** — how missing or incomplete values were handled
+- **Data manipulation** — transformations applied during curation (filtering, augmentation, etc.)
+- **Annotation protocol** — how labels/annotations were created (workforce type, guidelines, task design)
+- **Annotation platform** — tools or platforms used for annotation (e.g., Amazon Mechanical Turk, Label Studio)
+- **Annotation analysis** — inter-annotator agreement, quality metrics, disagreement analysis
+- **Annotations per item** — how many annotators labeled each example
+- **Annotator demographics** — demographic information about the annotation workforce
+- **Machine annotation tools** — automated tools used for labeling (NER, concept extraction, etc.)
+- **Biases** — documented or acknowledged biases in the data
+- **Limitations** — known generalization limits, non-recommended uses
+- **Social impact** — discussion of potential societal implications
+- **Personal/sensitive information** — whether the data contains PII or sensitive attributes (gender, age, geography, socioeconomic status, etc.)
+- **Use cases** — intended applications (training, testing, fine-tuning, etc.)
+- **Maintenance plan** — versioning, update frequency, deprecation policies
+
 ### Additional Metadata
 - **Keywords/tags** — relevant tags for discovery
 - **Related papers** — arXiv IDs referenced
@@ -138,8 +159,6 @@ Construct the Croissant file following the MLCommons Croissant 1.0 specification
     "conformsTo": "dct:conformsTo",
     "cr": "http://mlcommons.org/croissant/",
     "data": { "@id": "cr:data", "@type": "@json" },
-    "dataBiases": "cr:dataBiases",
-    "dataCollection": "cr:dataCollection",
     "dataType": { "@id": "cr:dataType", "@type": "@vocab" },
     "dct": "http://purl.org/dc/terms/",
     "extract": "cr:extract",
@@ -155,7 +174,7 @@ Construct the Croissant file following the MLCommons Croissant 1.0 specification
     "md5": "cr:md5",
     "parentField": "cr:parentField",
     "path": "cr:path",
-    "personalSensitiveInformation": "cr:personalSensitiveInformation",
+    "rai": "http://mlcommons.org/croissant/RAI/",
     "recordSet": "cr:recordSet",
     "references": "cr:references",
     "regex": "cr:regex",
@@ -176,7 +195,28 @@ Construct the Croissant file following the MLCommons Croissant 1.0 specification
   "creator": { ... },
   "keywords": [ ... ],
   "distribution": [ ... ],
-  "recordSet": [ ... ]
+  "recordSet": [ ... ],
+
+  "rai:dataCollection": "...",
+  "rai:dataCollectionType": [ ... ],
+  "rai:dataCollectionTimeframe": [ ... ],
+  "rai:dataCollectionMissingData": "...",
+  "rai:dataCollectionRawData": "...",
+  "rai:dataPreprocessingProtocol": [ ... ],
+  "rai:dataImputationProtocol": "...",
+  "rai:dataManipulationProtocol": "...",
+  "rai:dataAnnotationProtocol": "...",
+  "rai:dataAnnotationPlatform": [ ... ],
+  "rai:dataAnnotationAnalysis": [ ... ],
+  "rai:annotationsPerItem": "...",
+  "rai:annotatorDemographics": [ ... ],
+  "rai:machineAnnotationTools": [ ... ],
+  "rai:dataBiases": [ ... ],
+  "rai:dataLimitations": [ ... ],
+  "rai:dataSocialImpact": "...",
+  "rai:personalSensitiveInformation": [ ... ],
+  "rai:dataUseCases": [ ... ],
+  "rai:dataReleaseMaintenancePlan": [ ... ]
 }
 ```
 
@@ -193,6 +233,41 @@ Construct the Croissant file following the MLCommons Croissant 1.0 specification
 | Authors | `creator` | `sc:Person` or `sc:Organization` |
 | Tags | `keywords` | `sc:Text[]` |
 | Related URL | `sameAs` | `sc:URL` |
+
+### RAI Field Mapping Rules
+
+Include all RAI fields where the paper provides relevant information. Omit fields where the paper says nothing — do not fabricate RAI metadata.
+
+| Paper Information | Croissant RAI Field | Type | Cardinality |
+|-------------------|---------------------|------|-------------|
+| Data collection method description | `rai:dataCollection` | `sc:Text` | ONE |
+| Collection method category | `rai:dataCollectionType` | `sc:Text` | MANY |
+| Collection date range | `rai:dataCollectionTimeframe` | `sc:DateTime` | MANY |
+| Known gaps / missing data | `rai:dataCollectionMissingData` | `sc:Text` | ONE |
+| Original data sources | `rai:dataCollectionRawData` | `sc:Text` | ONE |
+| Preprocessing / cleaning steps | `rai:dataPreprocessingProtocol` | `sc:Text` | MANY |
+| Missing value handling | `rai:dataImputationProtocol` | `sc:Text` | ONE |
+| Filtering, augmentation, transforms | `rai:dataManipulationProtocol` | `sc:Text` | ONE |
+| Annotation methodology | `rai:dataAnnotationProtocol` | `sc:Text` | ONE |
+| Annotation tools / platforms | `rai:dataAnnotationPlatform` | `sc:Text` | MANY |
+| Inter-annotator agreement, quality | `rai:dataAnnotationAnalysis` | `sc:Text` | MANY |
+| Labels per example | `rai:annotationsPerItem` | `sc:Text` | ONE |
+| Annotator demographics | `rai:annotatorDemographics` | `sc:Text` | MANY |
+| Automated labeling tools | `rai:machineAnnotationTools` | `sc:Text` | MANY |
+| Documented biases | `rai:dataBiases` | `sc:Text` | MANY |
+| Known limitations | `rai:dataLimitations` | `sc:Text` | MANY |
+| Social impact discussion | `rai:dataSocialImpact` | `sc:Text` | ONE |
+| PII / sensitive attributes | `rai:personalSensitiveInformation` | `sc:Text` | MANY |
+| Intended use cases | `rai:dataUseCases` | `sc:Text` | MANY |
+| Versioning / maintenance plan | `rai:dataReleaseMaintenancePlan` | `sc:Text` | MANY |
+
+**Cardinality**: ONE = single string value. MANY = array of strings.
+
+**Allowed values for `rai:dataCollectionType`**: Surveys, Secondary Data Analysis, Physical Collection, Direct Measurement, Document Analysis, Manual Curation, Software Collection, Experiments, Web Scraping, Web API, Focus Groups, Self-reporting, Customer Feedback, User-generated Content, Passive Collection, Others.
+
+**Allowed values for `rai:personalSensitiveInformation`**: Gender, Socio-economic Status, Geography, Language, Age, Culture, Experience, Others.
+
+**Allowed values for `rai:dataUseCases`**: Training, Testing, Validation, Development, Production, Fine-tuning, Usage Guidelines.
 
 ### Distribution (Data Sources)
 
@@ -348,6 +423,19 @@ Write `{{results_dir}}/summary.md` with the following structure:
 - **Fields**: {list fields with types}
 - **Record Sets**: {count and names}
 
+## Responsible AI (RAI) Fields
+
+### RAI Fields Populated
+| RAI Field | Value Summary | Source |
+|-----------|--------------|--------|
+| rai:dataCollection | ... | Paper section N |
+| ... | ... | ... |
+
+### RAI Fields Not Populated
+| RAI Field | Reason |
+|-----------|--------|
+| ... | Not discussed in paper |
+
 ## Recommendations
 - {What could not be determined from the paper alone}
 - {Suggestions for improving the metadata with access to the actual data files}
@@ -421,7 +509,7 @@ python3 -c "import json; d=json.load(open(\"$RESULTS_DIR/validation_report.json\
 
 ### Checklist
 
-- [ ] `croissant.json` exists, is non-empty, and contains valid JSON-LD with at least `@context`, `@type`, `conformsTo`, `name`, and `description`
+- [ ] `croissant.json` exists, is non-empty, and contains valid JSON-LD with at least `@context`, `@type`, `conformsTo`, `name`, `description`, and at least one `rai:` field
 - [ ] `validation_report.json` exists, is non-empty, and contains a JSON object with `stages` array and `overall_passed` boolean
 - [ ] `summary.md` exists, is non-empty, and follows the executive summary template from Step 7
 - [ ] Verification script printed PASS for all files
@@ -440,3 +528,4 @@ python3 -c "import json; d=json.load(open(\"$RESULTS_DIR/validation_report.json\
 - **Multiple configurations**: If the dataset has multiple subsets (like GLUE's tasks or GSM8K's main/socratic), create separate FileSet + RecordSet pairs for each.
 - **Nested fields**: Use `subField` for structured data (e.g., SQuAD's answers field containing text + answer_start arrays).
 - **Pretty-print the JSON**: Use 2-space indentation in the final `croissant.json` for readability.
+- **RAI fields**: Always include the `rai:` namespace in `@context`. Populate every RAI field the paper supports — most papers discuss at least collection method, biases, and limitations. Use controlled vocabulary values for `dataCollectionType`, `personalSensitiveInformation`, and `dataUseCases` where applicable. Fields with cardinality MANY take an array even if there is only one value.
