@@ -82,7 +82,20 @@ export async function launchRun(params: {
   huggingfaceUrl?: string;
   model?: string;
 }): Promise<RunResponse> {
-  const runbook = loadRunbook();
+  const rawRunbook = loadRunbook();
+
+  // Pre-substitute template variables in the runbook since Jetty passes
+  // the instruction through verbatim to the agent.
+  const templateVars: Record<string, string> = {
+    results_dir: "/app/results",
+    pdf_filename: params.pdfFilename,
+    dataset_name: params.datasetName || "",
+    huggingface_url: params.huggingfaceUrl || "",
+  };
+  const runbook = rawRunbook.replace(
+    /\{\{(\w+)\}\}/g,
+    (match, key) => templateVars[key] ?? match
+  );
 
   const userParts = [
     `Generate a Croissant JSON-LD file for the dataset described in the uploaded PDF.`,
@@ -111,6 +124,7 @@ export async function launchRun(params: {
       timeout_sec: 600,
       timeout_hint: 5,
       template_variables: {
+        results_dir: "/app/results",
         pdf_filename: params.pdfFilename,
         dataset_name: params.datasetName || "",
         huggingface_url: params.huggingfaceUrl || "",
