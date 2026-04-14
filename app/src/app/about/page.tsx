@@ -417,7 +417,7 @@ export default function AboutPage() {
           </li>
           <li>
             <a
-              href="https://docs.jetty.io/guides/writing-runbooks"
+              href="https://docs.jetty.io/docs/guides/writing-runbooks"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sky-600 underline decoration-sky-200 underline-offset-2 hover:decoration-sky-400"
@@ -428,23 +428,12 @@ export default function AboutPage() {
           </li>
           <li>
             <a
-              href="https://docs.jetty.io/agents/overview"
+              href="https://www.jetty.io"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sky-600 underline decoration-sky-200 underline-offset-2 hover:decoration-sky-400"
             >
-              Agent setup
-            </a>{" "}
-            &mdash; connecting Claude Code, Codex, and other agents to Jetty
-          </li>
-          <li>
-            <a
-              href="https://dock.jetty.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sky-600 underline decoration-sky-200 underline-offset-2 hover:decoration-sky-400"
-            >
-              Create a Jetty account
+              Try Jetty
             </a>{" "}
             &mdash; sign up and get your API token
           </li>
