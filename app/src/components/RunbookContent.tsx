@@ -5,10 +5,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check, Download, Eye, Code } from "lucide-react";
 import { RUNBOOK_CONTENT } from "@/lib/runbook-content.generated";
+import { RunbookFlowchart } from "@/components/RunbookFlowchart";
 
 export function RunbookContent() {
   const [copied, setCopied] = useState(false);
-  const [view, setView] = useState<"rendered" | "raw">("rendered");
+  const [view, setView] = useState<"flowchart" | "markdown">("flowchart");
 
   async function copyToClipboard() {
     await navigator.clipboard.writeText(RUNBOOK_CONTENT);
@@ -50,9 +51,9 @@ export function RunbookContent() {
         </button>
         <div className="ml-auto flex items-center rounded-lg border border-gray-200 bg-white">
           <button
-            onClick={() => setView("rendered")}
+            onClick={() => setView("flowchart")}
             className={`inline-flex items-center gap-1.5 rounded-l-lg px-3 py-2 text-sm font-medium transition-colors ${
-              view === "rendered"
+              view === "flowchart"
                 ? "bg-gray-100 text-gray-900"
                 : "text-gray-500 hover:text-gray-700"
             }`}
@@ -61,9 +62,9 @@ export function RunbookContent() {
             Preview
           </button>
           <button
-            onClick={() => setView("raw")}
+            onClick={() => setView("markdown")}
             className={`inline-flex items-center gap-1.5 rounded-r-lg px-3 py-2 text-sm font-medium transition-colors ${
-              view === "raw"
+              view === "markdown"
                 ? "bg-gray-100 text-gray-900"
                 : "text-gray-500 hover:text-gray-700"
             }`}
@@ -75,19 +76,17 @@ export function RunbookContent() {
       </div>
 
       {/* Content */}
-      {view === "rendered" ? (
+      {view === "flowchart" ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 sm:p-8">
-          <div className="prose max-w-none prose-headings:text-gray-900 prose-p:text-gray-600 prose-a:text-sky-600 prose-strong:text-gray-800 prose-code:rounded prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-gray-700 prose-code:before:content-none prose-code:after:content-none prose-pre:bg-gray-900 prose-pre:text-gray-300 prose-th:text-gray-700 prose-td:text-gray-500">
+          <RunbookFlowchart />
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-950">
+          <div className="prose prose-invert max-w-none p-6 sm:p-8 prose-headings:text-gray-100 prose-p:text-gray-300 prose-a:text-sky-400 prose-strong:text-gray-200 prose-code:rounded prose-code:bg-gray-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-gray-300 prose-code:before:content-none prose-code:after:content-none prose-pre:bg-gray-900 prose-pre:text-gray-300 prose-th:text-gray-300 prose-td:text-gray-400 prose-hr:border-gray-800 prose-table:text-sm prose-li:text-gray-300 prose-blockquote:border-gray-700 prose-blockquote:text-gray-400">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {RUNBOOK_CONTENT}
             </ReactMarkdown>
           </div>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-900">
-          <pre className="overflow-x-auto p-6 text-sm leading-relaxed text-gray-300">
-            <code>{RUNBOOK_CONTENT}</code>
-          </pre>
         </div>
       )}
     </div>
