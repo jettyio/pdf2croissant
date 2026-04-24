@@ -110,7 +110,7 @@ export async function launchRun(params: {
   const webhookSecret = process.env.WEBHOOK_SECRET || "";
 
   const body = {
-    model: params.model || "gemini-3-pro-preview",
+    model: params.model || "claude-sonnet-4-6",
     messages: [
       { role: "system", content: runbook },
       { role: "user", content: userParts },

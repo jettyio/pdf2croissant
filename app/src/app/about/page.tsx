@@ -41,7 +41,7 @@ export default function AboutPage() {
             <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono">
               mlcroissant
             </code>{" "}
-            library, and a coding agent (currently Gemini CLI). The agent has
+            library, and a coding agent (currently Claude Code). The agent has
             full autonomy inside the sandbox: shell, network, file system.
           </Step>
           <Step n={3} title="The agent follows the runbook">
@@ -315,7 +315,7 @@ export default function AboutPage() {
   -H "Authorization: Bearer $JETTY_API_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "gemini-3-pro-preview",
+    "model": "claude-sonnet-4-6",
     "messages": [
       {"role": "system", "content": "<your runbook>"},
       {"role": "user", "content": "Generate a Croissant file for paper.pdf"}
