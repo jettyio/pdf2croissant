@@ -13,9 +13,6 @@ import {
   FileJson2,
   FileText,
   ShieldCheck,
-  Clock,
-  CheckCircle2,
-  XCircle,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -162,6 +159,92 @@ function RunMetadata({ trajectory }: { trajectory: Trajectory }) {
   );
 }
 
+type TabKey = "json-ld" | "summary" | "validation";
+
+function ResultTabs({
+  croissantPath,
+  summaryPath,
+  validationPath,
+}: {
+  croissantPath?: string;
+  summaryPath?: string;
+  validationPath?: string;
+}) {
+  const tabs: { key: TabKey; label: string; icon: React.ReactNode; available: boolean }[] = [
+    {
+      key: "json-ld",
+      label: "Croissant JSON-LD",
+      icon: <FileJson2 className="h-4 w-4" />,
+      available: !!croissantPath,
+    },
+    {
+      key: "summary",
+      label: "Executive Summary",
+      icon: <FileText className="h-4 w-4" />,
+      available: !!summaryPath,
+    },
+    {
+      key: "validation",
+      label: "Validation Report",
+      icon: <ShieldCheck className="h-4 w-4" />,
+      available: !!validationPath,
+    },
+  ];
+
+  const firstAvailable = tabs.find((t) => t.available)?.key ?? "json-ld";
+  const [active, setActive] = useState<TabKey>(firstAvailable);
+
+  return (
+    <section>
+      <div className="mb-4 flex gap-1 border-b border-gray-200">
+        {tabs.map((tab) => {
+          const isActive = active === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActive(tab.key)}
+              disabled={!tab.available}
+              className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? "border-sky-500 text-sky-600"
+                  : tab.available
+                    ? "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                    : "cursor-not-allowed border-transparent text-gray-300"
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {active === "json-ld" &&
+        (croissantPath ? (
+          <CroissantViewer filePath={croissantPath} />
+        ) : (
+          <p className="text-sm text-gray-400">No Croissant JSON-LD available.</p>
+        ))}
+
+      {active === "summary" &&
+        (summaryPath ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <SummaryReport filePath={summaryPath} />
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">No executive summary available.</p>
+        ))}
+
+      {active === "validation" &&
+        (validationPath ? (
+          <ValidationResults filePath={validationPath} />
+        ) : (
+          <p className="text-sm text-gray-400">No validation report available.</p>
+        ))}
+    </section>
+  );
+}
+
 function CollapsibleSection({
   icon,
   title,
@@ -301,38 +384,12 @@ export default function RunPage() {
 
           <RunMetadata trajectory={trajectory} />
 
-          {/* Validation */}
-          {validationPath && (
-            <section>
-              <h3 className="mb-3 flex items-center gap-2 text-lg font-medium text-gray-900">
-                <ShieldCheck className="h-5 w-5 text-sky-500" />
-                Validation
-              </h3>
-              <ValidationResults filePath={validationPath} />
-            </section>
-          )}
-
-          {/* Summary Report */}
-          {summaryPath && (
-            <section>
-              <h3 className="mb-3 flex items-center gap-2 text-lg font-medium text-gray-900">
-                <FileText className="h-5 w-5 text-sky-500" />
-                Executive Summary
-              </h3>
-              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <SummaryReport filePath={summaryPath} />
-              </div>
-            </section>
-          )}
-
-          {/* Croissant JSON-LD — collapsed by default */}
-          {croissantPath && (
-            <CollapsibleSection
-              icon={<FileJson2 className="h-5 w-5 text-sky-500" />}
-              title="Croissant JSON-LD"
-            >
-              <CroissantViewer filePath={croissantPath} />
-            </CollapsibleSection>
+          {(croissantPath || summaryPath || validationPath) && (
+            <ResultTabs
+              croissantPath={croissantPath}
+              summaryPath={summaryPath}
+              validationPath={validationPath}
+            />
           )}
 
           {/* Step Timeline — collapsed by default */}
